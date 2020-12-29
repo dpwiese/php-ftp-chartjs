@@ -62,7 +62,7 @@ Having following the steps in the post above, the FTP server was ready to develo
 
 # PHP Setup
 
-Running PHP webserver to serve locally
+Running [PHP's Built-in web server](https://www.php.net/manual/en/features.commandline.webserver.php) to serve locally
 
 ```sh
 % php -S 127.0.0.1:8000
@@ -72,6 +72,7 @@ Running PHP webserver to serve locally
 
 Dependency management is handled with [composer](https://getcomposer.org/).
 The first dependency that was installed was [PHP dotenv](https://github.com/vlucas/phpdotenv) to store the FTP credentials in environment variables.
+Available on [packagist.org](https://packagist.org/packages/vlucas/phpdotenv).
 
 ```sh
 # /usr/local/bin/composer
@@ -92,8 +93,29 @@ Note in the code below the backtick for using multiline string, since when this 
 </script>
 ```
 
+This approach did work, using the [PHP FTP Extension](https://www.php.net/manual/en/book.ftp.php) and it's `ftp_fget()` function to read files from the FTP server, and functions like `str_getcsv()` to read and parse the CSV files, and downsample the contained data.
+Plotting the data was straightforward in JavaScript.
+However, using `microtime()` to measure the clock time for each call to `ftp_fget()` to download the file revealed about 500 ms to download the 600 kb file.
+In this case there was a file generated every hour, and the past five days worth of data needed to be plotted, resulting in 120 files that needed to be downloaded and read.
+At 500 ms each, this meant it would take about one minute to download them all.
+
+Even with an order of magnitude increase in the download speed, it would still be too slow to use for its intended purpose.
+The downloads could also potentially be parallelized.
+The complexity required to do this and the limitations are not completely known to me, but regardless of how optimized this could be made, it's not a great approach to say the least to fetch 72 mb of data on each page load.
+
+At this point there are two obvious alternatives to me.
+1. Save the downloaded and parsed data to disk with something like `file_put_contents()` and use this local data for plotting.
+This way, only which have not previously been downloaded need to, and the small local files can easily be read and plotted from.
+This approach would require care to manage the local files and keep the local contents updated with the remote contents on the FTP, and if the processing and local saving was only triggered on page load, then the problem of having to fetch many files could still exist if there were no visitors to the page for some time.
+Of course, that last problem could be easily solved by automating a visitor to the site to trigger this processing, but overall the solution is sounding terribly complex.
+What should be a simple site to display some charts to a user now needs to perform FTP requests, and process and manage a bunch of data and files.
+2. Create a worker that runs on a schedule to pull the latest files from the FTP, parse and downsample them, save the result to disk, and provide an API from which the PHP site can fetch the latest data.
+Given this application need only quasi-realtime data, this seems like the most reasonable approach - run this processor every hour, and even if some operations take some time, it won't affect the user experience on the site.
+
 # References
 
 [Apptio Blog: Can Amazon EC2’s Burstable T3s Optimize Costs?](https://www.apptio.com/blog/aws-ec2-t3-cost-optimization/)
 
 > T3 instances feature the Intel Xeon Platinum 8000 series (Skylake-SP) processor with a sustained all core turbo CPU clock speed of up to 3.1 GHz. T3a instances feature the AMD EPYC 7000 series processor with an all core turbo CPU clock speed of up to 2.5 GHz.
+
+[PHP CS Fixer](https://cs.symfony.com)
