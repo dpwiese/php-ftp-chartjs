@@ -12,7 +12,7 @@ const FTP_REMOTE_PATH = "inbound_wifi/";
 const LOCAL_DOWNLOAD_PATH = "./download/";
 const S3_DEST_BUCKET_NAME = process.env.S3_DEST_BUCKET_NAME;
 const AWS_REGION = 'us-east-1';
-const CHART_PAST_DAYS = 0;
+const CHART_PAST_DAYS = 5;
 const DEST_FILE = "out.json";
 
 // Config AWS
@@ -47,7 +47,7 @@ async function run() {
 
   // Figure out which local files are old and should be deleted
   const updatedLocalFileNames = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
-  const localFileNamesToDelete = updatedLocalFileNames.filter(fileName => fileNameSubstrings.some(s => !fileName.includes(s)));
+  const localFileNamesToDelete = updatedLocalFileNames.filter(fileName => !fileNameSubstrings.some(s => fileName.includes(s)));
 
   // Delete old local files
   await deleteOldFiles(localFileNamesToDelete);
