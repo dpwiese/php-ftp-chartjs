@@ -1,0 +1,17 @@
+{
+  "name": "basic-ftp-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.818.0",
+    "basic-ftp": "^4.6.3",
+    "csv": "^5.3.2",
+    "dotenv": "^8.2.0"
+  }
+}

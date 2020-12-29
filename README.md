@@ -112,6 +112,23 @@ What should be a simple site to display some charts to a user now needs to perfo
 2. Create a worker that runs on a schedule to pull the latest files from the FTP, parse and downsample them, save the result to disk, and provide an API from which the PHP site can fetch the latest data.
 Given this application need only quasi-realtime data, this seems like the most reasonable approach - run this processor every hour, and even if some operations take some time, it won't affect the user experience on the site.
 
+# Worker
+
+Need to be able to:
+* List most recent files? Can trust the modified time? Or use filename? (Probably filename).
+* Read most recent files .If based on alphabetically ordered filename can do n number of files, or back to certain date? But if using dates it could be a pain, or just have to use a library to do something like `today - 5.days`.
+* Parse the files and save (as JSON?) to file, overwritng preexisting file.
+* Make API to return this JSON. If I write the file to S3, can just read from S3 from PHP site.
+
+There were several FTP clients available for node, went with
+
+https://github.com/patrickjuchli/basic-ftp
+https://www.npmjs.com/package/basic-ftp
+
+Dotenv
+
+https://github.com/motdotla/dotenv
+
 # References
 
 [Apptio Blog: Can Amazon EC2’s Burstable T3s Optimize Costs?](https://www.apptio.com/blog/aws-ec2-t3-cost-optimization/)
