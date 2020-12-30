@@ -17,7 +17,11 @@ const DEST_FILE = "out.json";
 
 // Config AWS
 AWS.config.update({region: AWS_REGION});
-s3 = new AWS.S3({apiVersion: '2006-03-01'});
+s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  apiVersion: '2006-03-01',
+});
 
 // Create FTP client and configure
 const ftpClient = new ftp.Client()
