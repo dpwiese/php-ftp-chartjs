@@ -70,7 +70,7 @@ async function run(): Promise<void> {
   const pearlDs18TempC: Array<string> = [];
 
   // Sort remaining recent local files by name before processing
-  const localFilesToUpload: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort(alphabetize);
+  const localFilesToUpload: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort();
 
   // Parse each local CSV file and push the data to local array
   localFilesToUpload.forEach((file: string): void => {
@@ -149,17 +149,6 @@ async function deleteLocalFiles(fileNames: Array<string>): Promise<void> {
   } catch (err) {
     console.log(err);
   }
-}
-
-//
-function alphabetize(a: typeof fs.Dirent, b: typeof fs.Dirent): number {
-  if (a.name < b.name) {
-    return -1;
-  }
-  if (a.name > b.name) {
-    return 1;
-  }
-  return 0;
 }
 
 //
