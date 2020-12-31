@@ -41,13 +41,13 @@
 
       // Find recentish files by filename
       foreach ($files as $file) {
-        if (strpos($file, 'SensorLog_2020-12-25') !== false) {
-          array_push($recent_files, $file);
-        }
-        if (strpos($file, 'SensorLog_2020-12-26') !== false) {
-          array_push($recent_files, $file);
-        }
         if (strpos($file, 'SensorLog_2020-12-27') !== false) {
+          array_push($recent_files, $file);
+        }
+        if (strpos($file, 'SensorLog_2020-12-28') !== false) {
+          array_push($recent_files, $file);
+        }
+        if (strpos($file, 'SensorLog_2020-12-29') !== false) {
           array_push($recent_files, $file);
         }
       }

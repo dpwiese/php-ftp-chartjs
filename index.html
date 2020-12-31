@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Line Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <style>
+      html {
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        background-color: #f7f8f9;
+        color: #222222;
+        font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        font-size: 17px;
+        font-weight: 400;
+        line-height: 1.5;
+        margin: 0;
+        text-transform: none;
+      }
+      canvas {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+      }
+      p {
+        margin-bottom: 1.5em;
+      }
+      ul {
+        margin: 0 0 1.5em 3em;
+        padding: 0;
+        border: 0;
+        display: block;
+        list-style: disc;
+        /* list-style-type: disc; */
+        margin-block-start: 1em;
+        margin-block-end: 1em;
+        margin-inline-start: 0px;
+        margin-inline-end: 0px;
+        padding-inline-start: 40px;
+      }
+      .grid-container {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 1200px;
+      }
+      .inside-article {
+        padding: 40px;
+        background-color: #ffffff;
+      }
+      .wp-block-columns {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .canvas-container {
+        width: 100%;
+      }
+      @media (min-width: 782px) {
+        .wp-block-column {
+          flex-basis: 0;
+          flex-grow: 1;
+        }
+      }
+      @media (max-width: 768px) {}
+        .container .site-content .content-area {
+          width: auto;
+        }
+        .inside-article {
+          padding: 30px;
+        }
+      }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+
+  <body>
+    <div id="page" class="site grid-container container hfeed">
+      <div id="content" class="site-content">
+        <div id="primary" class="content-area">
+          <main id="main" class="site-main">
+            <article>
+              <div class="inside-article">
+                <div class="entry-content" itemprop="text">
+                  <p>PEARL is continuously collecting valuable environmental data from Deep Pond. She has a suite of sensors that constantly monitor and log the following quantities:</p>
+                  <ul>
+                    <li>Air temperature</li>
+                    <li>Relative humidity</li>
+                    <li>Air pressure</li>
+                    <li>Ambient light intensity</li>
+                    <li>Wind speed</li>
+                    <li>Water temperature</li>
+                    <li>GPS coordinates</li>
+                  </ul>
+                  <p>Below is a sample of the data collected from PEARL so far.</p>
+                  <div class="wp-block-columns">
+                    <div class="wp-block-column">
+                      <div class="canvas-container">
+                        <canvas id="temperature" height="200"></canvas>
+                      </div>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vRpYibZfFIAOGcRYp9oYbtz7bMbyc5WqcKtbUZsHHyxwDdgDR6_k46ctKb85sKSZkfKHvwF18CIiOeT/pub?gid=456422582&amp;single=true&amp;output=csv">Download air temperature data</a><br>Sensor 1: <a href="https://www.adafruit.com/product/4099">SHT-30</a><br><em>(Note: The <em>SHT-30</em> has a built in heater that is programmed to toggle on for 10 seconds every 30 seconds to prevent moisture build up, resulting in sharp changes in relative humidity.)</em><br>Sensor 2: <a href="https://www.adafruit.com/product/4258">LSP35HW</a></p>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3oUAMws94f_ZJYqAZyp5mzWaDYwHO-GLHDLVh5DxONhpkURMMoFwrdoWY7-pjvGPcd4e4dUVml-d/pub?gid=1412652629&amp;single=true&amp;output=csv">Download water temperature data</a><br>Sensor: <a href="https://www.adafruit.com/product/4162">DS18B20</a></p>
+                    </div>
+                    <div class="wp-block-column">
+                      <div class="canvas-container">
+                        <canvas id="humidity" height="200"></canvas>
+                      </div>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vT5SQP04fSr8mj6N9Zg-1mphOc2fUcGNBQy7Oy4Q9LzOFtB5jWocjJT-8Xo9bZ4GjA5S1jQdO6bL55_/pub?gid=876434805&amp;single=true&amp;output=csv">Download relative humidity data</a><br>Sensor: <a href="https://www.adafruit.com/product/4099">SHT-30</a><br><em>(Note: The SHT-30 sensor has a built in heater that is programmed to toggle on for 10 seconds every 30 seconds to prevent moisture build up, resulting in sharp changes in relative humidity.)</em></p>
+                    </div>
+                  </div>
+                  <div class="wp-block-columns">
+                    <div class="wp-block-column">
+                      <div class="canvas-container">
+                        <canvas id="windSpeed" height="200"></canvas>
+                      </div>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSnMvWkiFQghQi5XCGYaSBu0vZGAb9j99HokpzM7CAIK7161flWKsQ9B3kD-j3uBBhLreQQX1TdaROy/pub?gid=1130602342&amp;single=true&amp;output=csv">Download wind speed data</a><br>Sensor: <a href="https://www.dfrobot.com/product-1114.html">SEN0170</a></p>
+                    </div>
+                    <div class="wp-block-column">
+                      <div class="canvas-container">
+                        <canvas id="placeholder" height="200"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function run() {
+        let response = await fetch("https://s3.amazonaws.com/followpearl.mit.edu/out.json");
+        if (response.ok) {
+          let pearlData = await response.json();
+
+          const pearlDateTime = pearlData.date.map((date, i) => {
+            return moment(`${date} ${pearlData.time[i]}`).format("DD-MMMM-YYYY h:mm A");
+          });
+
+          const temperatureConfig = {
+            type: 'line',
+            data: {
+              labels: pearlDateTime,
+              datasets: [{
+                label: 'LPS Air Temperature',
+                backgroundColor: 'rgb(218, 59, 33)',
+                borderColor: 'rgb(218, 59, 33)',
+                data: pearlData.lpsTempC,
+                fill: false,
+                pointRadius: 0,
+              }, {
+                label: 'SHT Air Temperature',
+                fill: false,
+                backgroundColor: 'rgb(52, 119, 206)',
+                borderColor: 'rgb(52, 119, 206)',
+                data: pearlData.shtTempC,
+                pointRadius: 0,
+              }, {
+                label: 'Water Temperature',
+                fill: false,
+                backgroundColor: 'rgb(51, 146, 116)',
+                borderColor: 'rgb(51, 146, 116)',
+                data: pearlData.ds18TempC,
+                pointRadius: 0,
+              }],
+            },
+            options: {
+              responsive: true,
+              title: {
+                display: true,
+                text: 'Deep Pond Temperature',
+              },
+              tooltips: {
+                mode: 'index',
+                intersect: false,
+              },
+              hover: {
+                mode: 'nearest',
+                intersect: true,
+              },
+              scales: {
+                xAxes: [{
+                  id: 'first-y-axis',
+                  display: true,
+                  scaleLabel: {
+                    display: true,
+                    labelString: 'Date',
+                  },
+                  ticks: {
+                    autoSkipPadding: 100,
+                    autoSkip: true,
+                    minRotation: 0,
+                    maxRotation: 0,
+                    callback: function(value, index, values) {
+                      return value.split(" ")[0];
+                    }
+                  },
+                }],
+                yAxes: [{
+                  display: true,
+                  scaleLabel: {
+                    display: true,
+                    labelString: 'Temperature (deg C)',
+                  },
+                }]
+              }
+            }
+          };
+
+          const humidityConfig = {
+            type: 'line',
+            data: {
+              labels: pearlDateTime,
+              datasets: [{
+                label: 'Relative Humidity',
+                backgroundColor: 'rgb(224, 110, 60)',
+                borderColor: 'rgb(224, 110, 60)',
+                data: pearlData.shtHumidPercent,
+                fill: false,
+                pointRadius: 0,
+              }]
+            },
+            options: {
+              responsive: true,
+              title: {
+                display: true,
+                text: 'Deep Pond Relative Humidity',
+              },
+              tooltips: {
+                mode: 'index',
+                intersect: false,
+              },
+              hover: {
+                mode: 'nearest',
+                intersect: true,
+              },
+              scales: {
+                xAxes: [{
+                  display: true,
+                  scaleLabel: {
+                    display: true,
+                    labelString: 'Date'
+                  },
+                  ticks: {
+                    autoSkipPadding: 100,
+                    autoSkip: true,
+                    minRotation: 0,
+                    maxRotation: 0,
+                    callback: function(value, index, values) {
+                      return value.split(" ")[0];
+                    }
+                  },
+                }],
+                yAxes: [{
+                  display: true,
+                  scaleLabel: {
+                    display: true,
+                    labelString: 'Relative Humidity (%)'
+                  },
+                }]
+              }
+            }
+          };
+
+          const windSpeedConfig = {
+            type: 'line',
+            data: {
+              labels: pearlDateTime,
+              datasets: [{
+                label: 'Wind Speed',
+                backgroundColor: 'rgb(51, 146, 116)',
+                borderColor: 'rgb(51, 146, 116)',
+                data: pearlData.windSpeedMS,
+                fill: false,
+                pointRadius: 0,
+              }]
+            },
+            options: {
+              responsive: true,
+              title: {
+                display: true,
+                text: 'Deep Pond Wind Speed',
+              },
+              tooltips: {
+                mode: 'index',
+                intersect: false,
+              },
+              hover: {
+                mode: 'nearest',
+                intersect: true,
+              },
+              scales: {
+                xAxes: [{
+                  display: true,
+                  scaleLabel: {
+                    display: true,
+                    labelString: 'Date'
+                  },
+                  ticks: {
+                    autoSkipPadding: 100,
+                    autoSkip: true,
+                    minRotation: 0,
+                    maxRotation: 0,
+                    callback: function(value, index, values) {
+                      return value.split(" ")[0];
+                    }
+                  },
+                }],
+                yAxes: [{
+                  display: true,
+                  scaleLabel: {
+                    display: true,
+                    labelString: 'Wind Speed (m/s)'
+                  },
+                }]
+              }
+            }
+          };
+
+          // Set chart label font size
+          Chart.defaults.global.defaultFontSize = window.innerWidth < 768 ? 8 : 14;
+
+          // Increase space between legend and chart area
+          Chart.Legend.prototype.afterFit = function() {
+            this.height = this.height + 5;
+          };
+
+          const tempEl = document.getElementById('temperature');
+          window.temperatureLine = new Chart(tempEl.getContext('2d'), temperatureConfig);
+
+          const humidEl = document.getElementById('humidity');
+          window.humidityLine = new Chart(humidEl.getContext('2d'), humidityConfig);
+
+          const windSpeedEl = document.getElementById('windSpeed');
+          window.windSpeedLine = new Chart(windSpeedEl.getContext('2d'), windSpeedConfig);
+        } else {
+          alert("HTTP-Error: " + response.status);
+        }
+      }
+
+      window.onload = function() {
+        run();
+      };
+    </script>
+  </body>
+</html>
