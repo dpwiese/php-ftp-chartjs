@@ -25,8 +25,14 @@ This is quite a straightforward approach but could require creating an API if th
 ## Using
 
 ```sh
-# Install
+# Install for local development
 % npm install
+
+# Install for production
+% npm install --production
+
+# Compile
+% tsc
 
 # Run eslint
 % npm run lint
@@ -250,6 +256,193 @@ Writing to S3, bucket ACL and CORS permissioning
 https://stackoverflow.com/questions/17533888/s3-access-control-allow-origin-header
 
 https://codeburst.io/javascript-async-await-with-foreach-b6ba62bbf404
+
+## Conversion to TypeScript
+
+```js
+// Already importing ftp as:
+const ftp = require("basic-ftp");
+
+// But need to explicitly get FileInfo type for using in TypeScript
+// First attempt was by doing the following, which worked
+import { FileInfo } from "basic-ftp";
+```
+
+Although this causes TS compiler to add following line to top of compiled file:
+
+```js
+Object.defineProperty(exports, "__esModule", { value: true });
+```
+
+I'm not sure if this is particularly bad, but given my original JS didn't have it
+I didn't see any reason why it should be there in compiled output
+See: https://github.com/microsoft/TypeScript/issues/14351
+That line seems to be because I'm using `import`.
+Can solve replacing the import statement and following use of FileInfo as type in code
+with using the following as my type, since ftp is already available via `require`
+
+```js
+typeof ftp.FileInfo
+```
+
+This solves compiler issues, but seems not to actually check the type!
+For example I could just as well have done `typeof ftp.Foo` and it would have worked...
+
+So maybe I need to go back to `import` style?
+
+Is this fixed by the following `tsconfig.json`?
+
+```json
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "module": "es2020"
+  }
+}
+```
+
+No.
+It gets rid of the "problematic" line, but then Node cannot understand the `import` statements and errors when run with:
+
+```
+(node:92591) Warning: To load an ES module, set "type": "module" in the package.json or use the .mjs extension.
+/Users/dpwiese/Code/dpwiese/php-ftp-chartjs/js/worker.js:2
+import ftp from "basic-ftp";
+^^^^^^
+
+SyntaxError: Cannot use import statement outside a module
+```
+
+adding `"type": "module"` in `package.json` as directed reslts in the following when run:
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/dpwiese/Code/dpwiese/php-ftp-chartjs/js/node_modules/aws-sdk/clients/s3' imported from /Users/dpwiese/Code/dpwiese/php-ftp-chartjs/js/worker.js
+Did you mean to import aws-sdk/clients/s3.js?
+```
+
+Switched import to `import S3 from "aws-sdk/clients/s3.js";` as directed and got:
+
+```
+file:///Users/dpwiese/Code/dpwiese/php-ftp-chartjs/js/worker.js:1
+require("dotenv").config();
+^
+
+ReferenceError: require is not defined
+```
+
+Now see [How do I use dotenv with import?](https://www.npmjs.com/package/dotenv#how-do-i-use-dotenv-with-import-)
+Just did:
+
+```js
+import dotenv from "dotenv";
+dotenv.config();
+```
+
+Concern is that `import`s are asynchronous while `require` are synchronous, and depends when `dotenv.config()` is called relative to loading.
+Since none of the imports use environment variables, this should be OK as above.
+
+Then get:
+
+```
+file:///Users/dpwiese/Code/dpwiese/php-ftp-chartjs/js/worker.js:5
+const path = require("path");
+             ^
+
+ReferenceError: require is not defined
+```
+
+So replace all `require` with `import`.
+
+Now typing an S3 type...
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property
+
+https://github.com/aws/aws-sdk-js/blob/master/lib/services/s3.d.ts
+
+[Compiler Options](https://www.typescriptlang.org/docs/handbook/compiler-options.html#compiler-options)
+
+This was useful to prevent some errors:
+`"esModuleInterop": true,`
+
+Above seemed equivalent to reduce errors as:
+`"allowSyntheticDefaultImports": true,`
+
+Looking at docs, `esModuleInterop` turns on `allowSyntheticDefaultImports` and some other stuff.
+
+Not sure about the following?
+
+```json
+{
+  "compilerOptions": {
+    "lib": [
+      "es2016",
+      "dom",
+      "es5"
+    ]
+  }
+}
+```
+
+Basically I think issue getting `import` syntax in TypeScript to compile to existing `require` in JavaScript is that I am trying to select some subsect only of previous ES spec?
+That is, I want otherwise es2020 output, but with `require` - which seems not really a case that is supported?
+
+https://stackoverflow.com/questions/31354559/using-node-js-require-vs-es6-import-export
+
+But the `import` were only ever needed to import the types, specifically:
+
+```js
+// Types
+import { FileInfo } from "basic-ftp";
+import { ManagedUpload } from "aws-sdk/clients/s3.js";
+```
+
+For this to work, and using the rest `require` statements, I don't need `"type": "module"` in `package.json` and set `tsconfig.json` with:
+
+```json
+{
+  "compilerOptions": {
+    "module": "commonjs",
+  }
+}
+```
+
+Don't need `"allowSyntheticDefaultImports": true` compiler option.
+Result is just that in the compiled JavaScript there is the following line, that doesn't seem to hurt anything?
+
+```js
+Object.defineProperty(exports, "__esModule", { value: true });
+```
+
+### Converting Fully to ES6 Imports
+
+1. Add `"type": "module"` to `package.json`
+2. Set `tsconfig.json` as
+  ```json
+  {
+    "compilerOptions": {
+      "allowSyntheticDefaultImports": true,
+      "module": "es2020",
+    }
+  }
+  ```
+3. Update `worker.ts` with the following
+  ```js
+  import dotenv from "dotenv";
+  import ftp, { FileInfo } from "basic-ftp";
+  import S3 from "aws-sdk/clients/s3.js";
+  import fs from "fs";
+  import path from "path";
+  import parse from "csv-parse/lib/sync.js";
+
+  dotenv.config();
+
+  const s3 = new S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    apiVersion: "2006-03-01",
+  });
+  s3.config.region = AWS_REGION;
+  ```
 
 # References
 
