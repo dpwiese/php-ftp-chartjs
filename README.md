@@ -32,7 +32,7 @@ This is quite a straightforward approach but could require creating an API if th
 % npm install --production
 
 # Compile
-% tsc --project tsconfig.json
+% tsc
 
 # Run eslint
 % npm run lint
@@ -266,17 +266,31 @@ const ftp = require("basic-ftp");
 // But need to explicitly get FileInfo type for using in TypeScript
 // First attempt was by doing the following, which worked
 import { FileInfo } from "basic-ftp";
-
-// Although this causes TS compiler to add following line to top of compiled file:
-// Object.defineProperty(exports, "__esModule", { value: true });
-// I'm not sure if this is particularly bad, but given my original JS didn't have it
-// I didn't see any reason why it should be there in compiled output
-// See: https://github.com/microsoft/TypeScript/issues/14351
-// This line seems to be because I'm using `import`.
-// Can solve replacing the import statement and following use of FileInfo as type in code
-// with using the following as my type, since ftp is already available via `require`
-// typeof ftp.FileInfo
 ```
+
+Although this causes TS compiler to add following line to top of compiled file:
+
+```js
+Object.defineProperty(exports, "__esModule", { value: true });
+```
+
+I'm not sure if this is particularly bad, but given my original JS didn't have it
+I didn't see any reason why it should be there in compiled output
+See: https://github.com/microsoft/TypeScript/issues/14351
+That line seems to be because I'm using `import`.
+Can solve replacing the import statement and following use of FileInfo as type in code
+with using the following as my type, since ftp is already available via `require`
+
+```js
+typeof ftp.FileInfo
+```
+
+This solves compiler issues, but seems not to actually check the type!
+For example I could just as well have done `typeof ftp.Foo` and it would have worked...
+
+So maybe I need to go back to `import` style?
+
+[Compiler Options](https://www.typescriptlang.org/docs/handbook/compiler-options.html#compiler-options)
 
 # References
 

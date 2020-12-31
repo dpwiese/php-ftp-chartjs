@@ -116,7 +116,7 @@ async function run(): Promise<void> {
 
   const pearlJson: string = JSON.stringify(pearlData);
 
-  fs.writeFile(DEST_FILE, pearlJson, (err) => {
+  fs.writeFile(DEST_FILE, pearlJson, (err: Error) => {
     if (err) {
       throw err;
     }
@@ -125,7 +125,7 @@ async function run(): Promise<void> {
     const uploadParams = { Bucket: S3_DEST_BUCKET_NAME, Key: path.basename(DEST_FILE), Body: fileStream };
 
     // Upload
-    s3.upload(uploadParams, function (err, data) {
+    s3.upload(uploadParams, function (err: Error, data: typeof s3.placeholder) {
       if (err) {
         console.log("Error", err);
       }
@@ -140,16 +140,19 @@ async function run(): Promise<void> {
 //
 async function deleteLocalFiles(fileNames: Array<string>): Promise<void> {
   try {
-    await asyncForEach(fileNames, async (fileName) => {
-      await fs.unlinkSync(`${LOCAL_DOWNLOAD_PATH}${fileName}`);
-    });
+    await asyncForEach(
+      fileNames,
+      async (fileName: string): Promise<void> => {
+        await fs.unlinkSync(`${LOCAL_DOWNLOAD_PATH}${fileName}`);
+      }
+    );
   } catch (err) {
     console.log(err);
   }
 }
 
 //
-function alphabetize(a, b): number {
+function alphabetize(a: typeof fs.Dirent, b: typeof fs.Dirent): number {
   if (a.name < b.name) {
     return -1;
   }
@@ -177,8 +180,12 @@ function generateRecentSubstrings(): Array<string> {
   return fileNames;
 }
 
+interface AsyncForEachCallback {
+  (element: string, index: number, array: Array<string>): Promise<void>;
+}
+
 //
-async function asyncForEach(array, callback) {
+async function asyncForEach(array: Array<string>, callback: AsyncForEachCallback) {
   for (let index = 0; index < array.length; index++) {
     await callback(array[index], index, array);
   }
