@@ -257,6 +257,27 @@ https://stackoverflow.com/questions/17533888/s3-access-control-allow-origin-head
 
 https://codeburst.io/javascript-async-await-with-foreach-b6ba62bbf404
 
+## Conversion to TypeScript
+
+```js
+// Already importing ftp as:
+const ftp = require("basic-ftp");
+
+// But need to explicitly get FileInfo type for using in TypeScript
+// First attempt was by doing the following, which worked
+import { FileInfo } from "basic-ftp";
+
+// Although this causes TS compiler to add following line to top of compiled file:
+// Object.defineProperty(exports, "__esModule", { value: true });
+// I'm not sure if this is particularly bad, but given my original JS didn't have it
+// I didn't see any reason why it should be there in compiled output
+// See: https://github.com/microsoft/TypeScript/issues/14351
+// This line seems to be because I'm using `import`.
+// Can solve replacing the import statement and following use of FileInfo as type in code
+// with using the following as my type, since ftp is already available via `require`
+// typeof ftp.FileInfo
+```
+
 # References
 
 [Apptio Blog: Can Amazon EC2’s Burstable T3s Optimize Costs?](https://www.apptio.com/blog/aws-ec2-t3-cost-optimization/)

@@ -5,8 +5,6 @@ const fs = require("fs");
 const path = require("path");
 const parse = require("csv-parse/lib/sync");
 
-import { FileInfo } from "basic-ftp";
-
 // Constants
 const FTP_REMOTE_PATH = "inbound_wifi/";
 const LOCAL_DOWNLOAD_PATH = "./download/";
@@ -31,8 +29,8 @@ run();
 
 async function run(): Promise<void> {
   // Get list of all files on FTP server
-  const ftpFiles: Array<FileInfo> = await connectAndGetFileList();
-  const ftpFileNames: Array<string> = ftpFiles.map((f: FileInfo): string => f.name);
+  const ftpFiles: Array<typeof ftp.FileInfo> = await connectAndGetFileList();
+  const ftpFileNames: Array<string> = ftpFiles.map((f: typeof ftp.FileInfo): string => f.name);
 
   // Generate substrings corresponding to recent files
   const fileNameSubstrings: Array<string> = generateRecentSubstrings();
@@ -200,7 +198,7 @@ async function downloadFilesFromFtp(fileNames: Array<string>): Promise<void> {
 }
 
 //
-async function connectAndGetFileList(): Promise<FileInfo[]> {
+async function connectAndGetFileList(): Promise<typeof ftp.FileInfo[]> {
   try {
     await ftpClient.access({
       host: process.env.FTP_SERVER,
@@ -208,7 +206,7 @@ async function connectAndGetFileList(): Promise<FileInfo[]> {
       password: process.env.FTP_PASSWORD,
       secure: true,
     });
-    const files: Array<FileInfo> = await ftpClient.list(FTP_REMOTE_PATH);
+    const files: Array<typeof ftp.FileInfo> = await ftpClient.list(FTP_REMOTE_PATH);
     return files;
   } catch (err) {
     console.log(err);

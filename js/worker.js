@@ -1,4 +1,3 @@
-Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv").config();
 const ftp = require("basic-ftp");
 const AWS = require("aws-sdk");
