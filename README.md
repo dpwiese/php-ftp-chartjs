@@ -1,12 +1,12 @@
 # PHP FTP ChartJS
 
-This repo contains source code for a small project: create quasi-realtime charts on a Wordpress site from data periodically uploaded to an FTP server.
+This repo contains source code for a small project: **create quasi-realtime charts on a Wordpress site from data periodically uploaded to an FTP server**.
 
 ## Introduction
 
 The most convenient approach would have been connecting to the FTP server from the browser to access, parse, and plot the data.
 This would've created issues doing this securely without exposing the FTP credentials, and would have created performance limitations if there was a lot of data that needed to be parsed.
-Regardless, it seems browsers are dropping support for FTP anyway as described in the Chrome Platform Status [Feature: Deprecate FTP support (deprecated)](https://www.chromestatus.com/feature/6246151319715840) page, on the Bugzilla ticket [Remove FTP support](https://bugzilla.mozilla.org/show_bug.cgi?id=1574475), as well as in the Mozilla Blog [What to expect for the upcoming deprecation of FTP in Firefox](https://blog.mozilla.org/addons/2020/04/13/what-to-expect-for-the-upcoming-deprecation-of-ftp-in-firefox/).
+Regardless, it seems browsers are dropping or have dropped support for FTP anyway as described in the Chrome Platform Status [Feature: Deprecate FTP support (deprecated)](https://www.chromestatus.com/feature/6246151319715840) page, on the Bugzilla ticket [Remove FTP support](https://bugzilla.mozilla.org/show_bug.cgi?id=1574475), as well as in the Mozilla Blog [What to expect for the upcoming deprecation of FTP in Firefox](https://blog.mozilla.org/addons/2020/04/13/what-to-expect-for-the-upcoming-deprecation-of-ftp-in-firefox/).
 Now, browsers like Safari 14 and Chrome 87 both launch the built-in file manager when attempting to access an FTP server.
 
 It seems [XMLHttpRequest](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest) used to be a potential option, as described in the [2014 documentation](https://web.archive.org/web/20141205110759/https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest):
@@ -17,7 +17,7 @@ However, that is no longer the case.
 Basically, all this meant that if the FTP needed to be accessed, it needed to be done server-side.
 
 This was a more sensible implementation for the reasons described above - FTP credentials could be hidden from the user, and computation could be more performant server-side.
-The downside with this approach, described below, can be performance loss and complexity in an otherwise simple (e.g. Wordpress) site if there are many files and lots of data that need to be pulled and parsed before displaying it.
+The downside with this approach, described in more detail below, can be performance loss and complexity in an otherwise simple (e.g. Wordpress) site if there are many files and lots of data that need to be pulled and parsed before displaying it.
 
 A third and most complex option, although likely the correct approach given the specifics of the problem, is to make a worker connect to the FTP server periodically, retrieve new data files, parse and downsample the data, and save it as JSON where it can be easily accessed via HTTPS from the browser.
 This is quite a straightforward approach but could require creating an API if the constraints of the problem change, for example needing to specify the downsample rate, the time period of data to return, or the particular metric from within the data to return.
@@ -38,20 +38,31 @@ This is quite a straightforward approach but could require creating an API if th
 % npm run lint
 ```
 
+The `worker.js` script is on EC2 at `/home/ec2-user/pearl` and run from cron in `/etc/crontab`.
+In the `pearl` directory are:
+
+```
+download
+node_modules
+package.json
+package-lock.json
+worker.js
+```
+
 # EC2 FTP Server
 
-As a first step, I wanted to create my own simple FTP server which I could use to develop and test against.
-My first thought was to see if AWS offered a simple easy to user FTP server and found [AWS Transfer Family](https://aws.amazon.com/aws-transfer-family/).
+As a first step, I wanted to create my own FTP server which I could use to develop and test against.
+My first thought was to see if AWS offered a simple, easy-to-use FTP server and found [AWS Transfer Family](https://aws.amazon.com/aws-transfer-family/).
 This seemed like a convenient option:
 
 > Simple and seamless file transfer to Amazon S3 using SFTP, FTPS, and FTP
 
-This seemed like it could be a cheap and simple way to throw some sample data into an S3 bucket and configure an FTP endpoint to give access to that data.
+At first it seemed like it could be a cheap and simple way to throw some sample data into an S3 bucket and configure an FTP endpoint to give access to that data.
 But at $0.30 per hour just to have the FTP endpoint enabled was about $216/month which was way too much, so I never figured out whether it was simple or not.
 There didn't seem to be any other good cheap or free FTP servers for such a project - just somewhere to throw a few megabytes of data and test reading the data from an FTP client.
 EC2 seemed like a convenient and flexible way to go.
 
-Checking the EC2 [On-Demand Pricing](https://aws.amazon.com/ec2/pricing/on-demand/), a t3a.nano is $0.0047 per Hour or less than $3.50/month.
+Checking the EC2 [On-Demand Pricing](https://aws.amazon.com/ec2/pricing/on-demand/), a `t3a.nano` is $0.0047 per Hour or less than $3.50/month.
 After launching the instance the following links were helpful:
 [Connect to your Linux instance using an SSH client](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AccessingInstancesLinux.html) and [Get information about your instance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs.html#connection-prereqs-get-info-about-instance) which said:
 
@@ -77,17 +88,12 @@ The post [How to Configure FTP on AWS EC2](https://medium.com/tensult/configure-
 % sudo systemctl restart vsftpd
 ```
 
-Default directory when connecting contained a single subdirectory `pub` which is found using the following command:
-
-```sh
-# Find the folder: /var/ftp/pub
-% find / -name pub
-```
-
 Having following the steps in the post above, the FTP server was ready to develop and test against.
-With some test data in `/var/ftp/` the user `awsftpuser` and its corresponding password were used to connect.
+With some test data in `/var/ftp/` the user `awsftpuser` with its corresponding password were used to connect.
 
 # Accessing FTP from PHP
+
+With the FTP server up, it was now time to attempt to connect and access the data via PHP.
 
 ## Environment Setup
 
@@ -95,8 +101,6 @@ Running [PHP's Built-in web server](https://www.php.net/manual/en/features.comma
 
 ```sh
 % php -S 127.0.0.1:8000
-% php -S 127.0.0.1:8000 index.php
-% php -S 127.0.0.1:8000 -t ./
 ```
 
 Dependency management is handled with [composer](https://getcomposer.org/).
@@ -124,14 +128,15 @@ Note in the code below the backtick for using multiline string, since when this 
 </script>
 ```
 
-Didn't need this?
+The following option didn't end up being used.
 
 ```php
 // Set passive address false
 ftp_set_option($ftp_conn, FTP_USEPASVADDRESS, false);
 ```
 
-Also this
+The following snippet was used to get the modified timestamp of each file on the FTP server so only the most recent ones could be downloaded.
+Beyond this operation taking a long time, it seemed like a bad idea to use the timestamp, in case a _file_ was modified after its original write, thus returning data out of order.
 
 ```php
 foreach ($files as $file) {
@@ -143,7 +148,7 @@ foreach ($files as $file) {
 }
 ```
 
-and clock time
+Using `microtime` below was a good way to benchmark clock time taken during certain operations, for example waiting for files to download.
 
 ```php
 // DEBUG: Start time
@@ -417,32 +422,32 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 1. Add `"type": "module"` to `package.json`
 2. Set `tsconfig.json` as
-  ```json
-  {
-    "compilerOptions": {
-      "allowSyntheticDefaultImports": true,
-      "module": "es2020",
+    ```json
+    {
+      "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "module": "es2020",
+      }
     }
-  }
-  ```
+    ```
 3. Update `worker.ts` with the following
-  ```js
-  import dotenv from "dotenv";
-  import ftp, { FileInfo } from "basic-ftp";
-  import S3 from "aws-sdk/clients/s3.js";
-  import fs from "fs";
-  import path from "path";
-  import parse from "csv-parse/lib/sync.js";
+    ```js
+    import dotenv from "dotenv";
+    import ftp, { FileInfo } from "basic-ftp";
+    import S3 from "aws-sdk/clients/s3.js";
+    import fs from "fs";
+    import path from "path";
+    import parse from "csv-parse/lib/sync.js";
 
-  dotenv.config();
+    dotenv.config();
 
-  const s3 = new S3({
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    apiVersion: "2006-03-01",
-  });
-  s3.config.region = AWS_REGION;
-  ```
+    const s3 = new S3({
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      apiVersion: "2006-03-01",
+    });
+    s3.config.region = AWS_REGION;
+    ```
 
 # References
 
