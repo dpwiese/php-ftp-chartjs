@@ -38,7 +38,7 @@ async function run() {
     const pearlShtHumidPercent = [];
     const pearlWindSpeedMS = [];
     const pearlDs18TempC = [];
-    const localFilesToUpload = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort(alphabetize);
+    const localFilesToUpload = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort();
     localFilesToUpload.forEach((file) => {
         const records = parse(fs.readFileSync(`${LOCAL_DOWNLOAD_PATH}${file}`, "utf8"), {
             columns: true,
@@ -94,15 +94,6 @@ async function deleteLocalFiles(fileNames) {
     catch (err) {
         console.log(err);
     }
-}
-function alphabetize(a, b) {
-    if (a.name < b.name) {
-        return -1;
-    }
-    if (a.name > b.name) {
-        return 1;
-    }
-    return 0;
 }
 function generateRecentSubstrings() {
     const fileNames = [];
