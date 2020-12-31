@@ -1,6 +1,9 @@
 # PHP FTP ChartJS
 
 This repo contains source code for a small project: create quasi-realtime charts on a Wordpress site from data periodically uploaded to an FTP server.
+
+## Introduction
+
 The most convenient approach would have been connecting to the FTP server from the browser to access, parse, and plot the data.
 This would've created issues doing this securely without exposing the FTP credentials, and would have created performance limitations if there was a lot of data that needed to be parsed.
 Regardless, it seems browsers are dropping support for FTP anyway as described in the Chrome Platform Status [Feature: Deprecate FTP support (deprecated)](https://www.chromestatus.com/feature/6246151319715840) page, on the Bugzilla ticket [Remove FTP support](https://bugzilla.mozilla.org/show_bug.cgi?id=1574475), as well as in the Mozilla Blog [What to expect for the upcoming deprecation of FTP in Firefox](https://blog.mozilla.org/addons/2020/04/13/what-to-expect-for-the-upcoming-deprecation-of-ftp-in-firefox/).
@@ -18,6 +21,13 @@ The downside with this approach, described below, can be performance loss and co
 
 A third and most complex option, although likely the correct approach given the specifics of the problem, is to make a worker connect to the FTP server periodically, retrieve new data files, parse and downsample the data, and save it as JSON where it can be easily accessed via HTTPS from the browser.
 This is quite a straightforward approach but could require creating an API if the constraints of the problem change, for example needing to specify the downsample rate, the time period of data to return, or the particular metric from within the data to return.
+
+## Using
+
+```sh
+# Install
+% npm install
+```
 
 # EC2 FTP Server
 
