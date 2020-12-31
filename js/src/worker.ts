@@ -1,9 +1,11 @@
-require("dotenv").config();
-const ftp = require("basic-ftp");
-const AWS = require("aws-sdk");
-const fs = require("fs");
-const path = require("path");
-const parse = require("csv-parse/lib/sync");
+import dotenv from "dotenv";
+import ftp, { FileInfo } from "basic-ftp";
+import S3 from "aws-sdk/clients/s3.js";
+import fs from "fs";
+import path from "path";
+import parse from "csv-parse/lib/sync.js";
+
+dotenv.config();
 
 // Constants
 const FTP_REMOTE_PATH = "inbound_wifi/";
@@ -14,12 +16,12 @@ const CHART_PAST_DAYS = 5;
 const DEST_FILE = "out.json";
 
 // Config AWS
-AWS.config.update({ region: AWS_REGION });
-const s3 = new AWS.S3({
+const s3 = new S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   apiVersion: "2006-03-01",
 });
+s3.config.region = AWS_REGION;
 
 // Create FTP client and configure
 const ftpClient = new ftp.Client();
@@ -29,8 +31,8 @@ run();
 
 async function run(): Promise<void> {
   // Get list of all files on FTP server
-  const ftpFiles: Array<typeof ftp.FileInfo> = await connectAndGetFileList();
-  const ftpFileNames: Array<string> = ftpFiles.map((f: typeof ftp.FileInfo): string => f.name);
+  const ftpFiles: Array<FileInfo> = await connectAndGetFileList();
+  const ftpFileNames: Array<string> = ftpFiles.map((f: FileInfo): string => f.name);
 
   // Generate substrings corresponding to recent files
   const fileNameSubstrings: Array<string> = generateRecentSubstrings();
@@ -125,7 +127,7 @@ async function run(): Promise<void> {
     const uploadParams = { Bucket: S3_DEST_BUCKET_NAME, Key: path.basename(DEST_FILE), Body: fileStream };
 
     // Upload
-    s3.upload(uploadParams, function (err: Error, data: typeof s3.placeholder) {
+    s3.upload(uploadParams, function (err: Error, data: S3.ManagedUpload.SendData) {
       if (err) {
         console.log("Error", err);
       }
@@ -194,7 +196,7 @@ async function downloadFilesFromFtp(fileNames: Array<string>): Promise<void> {
 }
 
 //
-async function connectAndGetFileList(): Promise<typeof ftp.FileInfo[]> {
+async function connectAndGetFileList(): Promise<FileInfo[]> {
   try {
     await ftpClient.access({
       host: process.env.FTP_SERVER,
@@ -202,7 +204,7 @@ async function connectAndGetFileList(): Promise<typeof ftp.FileInfo[]> {
       password: process.env.FTP_PASSWORD,
       secure: true,
     });
-    const files: Array<typeof ftp.FileInfo> = await ftpClient.list(FTP_REMOTE_PATH);
+    const files: Array<FileInfo> = await ftpClient.list(FTP_REMOTE_PATH);
     return files;
   } catch (err) {
     console.log(err);
