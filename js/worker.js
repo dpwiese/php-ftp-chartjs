@@ -120,14 +120,13 @@ async function run() {
 }
 
 //
-async function deleteOldFiles(localFileNamesToDelete) {
+async function deleteOldFiles(fileNames) {
   try {
-    await asyncForEach(localFileNamesToDelete, async (localFileName) => {
-      await fs.unlinkSync(`${LOCAL_DOWNLOAD_PATH}${localFileName}`);
+    await asyncForEach(fileNames, async (fileName) => {
+      await fs.unlinkSync(`${LOCAL_DOWNLOAD_PATH}${fileName}`);
     });
   } catch(err) {
     console.log(err);
-    ftpClient.close();
   }
 }
 
