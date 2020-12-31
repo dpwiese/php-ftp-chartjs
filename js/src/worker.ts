@@ -16,7 +16,7 @@ const CHART_PAST_DAYS = 5;
 const DEST_FILE = "out.json";
 
 // Config AWS
-AWS.config.update({region: AWS_REGION});
+AWS.config.update({ region: AWS_REGION });
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -32,26 +32,32 @@ run();
 async function run(): Promise<void> {
   // Get list of all files on FTP server
   const ftpFiles: Array<FileInfo> = await connectAndGetFileList();
-  const ftpFileNames: Array<string> = ftpFiles.map(f => f.name);
+  const ftpFileNames: Array<string> = ftpFiles.map((f: FileInfo): string => f.name);
 
   // Generate substrings corresponding to recent files
   const fileNameSubstrings: Array<string> = generateRecentSubstrings();
 
   // Push all file names whose data should be plotted to fileNames
-  const recentFileNames: Array<string> = ftpFileNames.filter(fileName => fileNameSubstrings.some(s => fileName.includes(s)));
+  const recentFileNames: Array<string> = ftpFileNames.filter((fileName: string): boolean =>
+    fileNameSubstrings.some((s: string): boolean => fileName.includes(s))
+  );
 
   // Get local filenames
   const localFileNames: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
 
   // Get list of files to download that don't already exist locally
-  const filesToDownload: Array<string> = recentFileNames.filter(recentFileName => !localFileNames.includes(recentFileName));
+  const filesToDownload: Array<string> = recentFileNames.filter(
+    (recentFileName: string): boolean => !localFileNames.includes(recentFileName)
+  );
 
   // Download files
   await downloadFilesFromFtp(filesToDownload);
 
   // Figure out which local files are old and should be deleted
   const updatedLocalFileNames: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
-  const localFileNamesToDelete: Array<string> = updatedLocalFileNames.filter(fileName => !fileNameSubstrings.some(s => fileName.includes(s)));
+  const localFileNamesToDelete: Array<string> = updatedLocalFileNames.filter(
+    (fileName: string): boolean => !fileNameSubstrings.some((s: string): boolean => fileName.includes(s))
+  );
 
   // Delete old local files
   await deleteLocalFiles(localFileNamesToDelete);
@@ -69,14 +75,14 @@ async function run(): Promise<void> {
   const localFilesToUpload: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort(alphabetize);
 
   // Parse each local CSV file and push the data to local array
-  localFilesToUpload.forEach(file => {
+  localFilesToUpload.forEach((file: string): void => {
     const records = parse(fs.readFileSync(`${LOCAL_DOWNLOAD_PATH}${file}`, "utf8"), {
       columns: true,
       skip_empty_lines: true,
-      skip_lines_with_error: true
+      skip_lines_with_error: true,
     });
 
-    for(let i = 0; i < records.length; i = i + 1000) {
+    for (let i = 0; i < records.length; i = i + 1000) {
       pearlDate.push(records[i]["Date"]);
       pearlTimeEst.push(records[i]["Time (EST)"]);
       pearlBmpTempC.push(records[i]["BMP temp(C)"]);
@@ -118,13 +124,14 @@ async function run(): Promise<void> {
     }
     console.log("JSON data is saved.");
     const fileStream = fs.createReadStream(DEST_FILE);
-    const uploadParams = {Bucket: S3_DEST_BUCKET_NAME, Key: path.basename(DEST_FILE), Body: fileStream};
+    const uploadParams = { Bucket: S3_DEST_BUCKET_NAME, Key: path.basename(DEST_FILE), Body: fileStream };
 
     // Upload
-    s3.upload (uploadParams, function (err, data) {
+    s3.upload(uploadParams, function (err, data) {
       if (err) {
         console.log("Error", err);
-      } if (data) {
+      }
+      if (data) {
         console.log("Upload Success", data.Location);
         fs.unlinkSync(DEST_FILE);
       }
@@ -138,7 +145,7 @@ async function deleteLocalFiles(fileNames: Array<string>): Promise<void> {
     await asyncForEach(fileNames, async (fileName) => {
       await fs.unlinkSync(`${LOCAL_DOWNLOAD_PATH}${fileName}`);
     });
-  } catch(err) {
+  } catch (err) {
     console.log(err);
   }
 }
@@ -186,7 +193,7 @@ async function downloadFilesFromFtp(fileNames: Array<string>): Promise<void> {
       await ftpClient.downloadTo(`${LOCAL_DOWNLOAD_PATH}${fileName}`, `${FTP_REMOTE_PATH}${fileName}`);
     });
     ftpClient.close();
-  } catch(err) {
+  } catch (err) {
     console.log(err);
     ftpClient.close();
   }
@@ -199,12 +206,11 @@ async function connectAndGetFileList(): Promise<FileInfo[]> {
       host: process.env.FTP_SERVER,
       user: process.env.FTP_USERNAME,
       password: process.env.FTP_PASSWORD,
-      secure: true
+      secure: true,
     });
     const files: Array<FileInfo> = await ftpClient.list(FTP_REMOTE_PATH);
     return files;
-  }
-  catch(err) {
+  } catch (err) {
     console.log(err);
     ftpClient.close();
   }

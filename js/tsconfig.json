@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "forceConsistentCasingInFileNames": true,
-    "module": "es2015",
+    "module": "none",
     "moduleResolution": "node",
+    "noImplicitUseStrict": true,
     "outDir": "",
-    "removeComments": false,
+    "removeComments": true,
     "target": "es2020"
   },
   "include" :[

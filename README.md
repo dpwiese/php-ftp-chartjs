@@ -25,11 +25,11 @@ This is quite a straightforward approach but could require creating an API if th
 ## Using
 
 ```sh
-# Install
+# Install for local development
 % npm install
 
-# Check only
-% tsc --noEmit --project tsconfig.json
+# Install for production
+% npm install --production
 
 # Compile
 % tsc --project tsconfig.json
