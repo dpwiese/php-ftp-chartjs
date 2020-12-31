@@ -197,7 +197,10 @@ Given some of the data turned out to be malformed, the [`skip_lines_with_error`]
 
 ## Cron
 
-https://stackoverflow.com/questions/10472173/cannot-get-cron-to-work-on-amazon-ec2
+Setting up cron was relatively straightforward, and some common commands are below.
+Main points to be mindful of when configuring cron are which user to use, the corresponding file permissions and `PATH` that are set, and to `cd` into the directory from where the script should be run.
+For example, when running as `ec2-user`, it didn't have permission to run `node`, nor write to `/tmp/cron.log`.
+Lastly, there were some AWS credentials issues, probably because of `PATH`, hence using `dotenv` to load AWS credentials.
 
 ```sh
 # Edit this file instead, system-wide crontab
@@ -209,8 +212,14 @@ https://stackoverflow.com/questions/10472173/cannot-get-cron-to-work-on-amazon-e
 # Restart cron
 % /bin/systemctl restart crond.service
 
-# 
+# View cron in system logs
 % journalctl |grep -i cron|tail -20
+
+# View cron errors in mail
+% cat /var/spool/mail/root
+
+# View output from node script
+% cat /tmp/cron.log
 ```
 
 Following is `/etc/crontab`:
@@ -220,39 +229,7 @@ Following is `/etc/crontab`:
 0 * * * * root cd /home/ec2-user/pearl && /root/.nvm/versions/node/v15.5.0/bin/node ./worker.js > /tmp/cron.log
 ```
 
-https://forums.aws.amazon.com/thread.jspa?threadID=311106
-
-Tried creating file `/etc/cron.d/crontab`.
-This didn't solve any of the problems...
-
-CRON ERRORS ARE GOING TO MAIL:
-
-```sh
-% cat /var/spool/mail/root
-```
-
-https://stackoverflow.com/questions/54557146/not-able-to-use-node-js-and-crontab
-
-Just edit `/etc/crontab` to add my job, although other places like `/etc/cron.d/crontab` would probably work just as well.
-
-Need to put full path to `node` in cron command or can't find it:
-```
-/bin/sh: node: command not found
-```
-so
-```
-% which node
-/root/.nvm/versions/node/v15.5.0/bin/node
-```
-
-* Run cron as root or can't execute `node` for some reason
-* Also need to run as root to write the output to file via `> /tmp/cron.log`
-* To debug check the mailer `% cat /var/spool/mail/root`
-* To check output see `% cat /tmp/cron.log`
-* AWS credentials error, so set them in the script with dotenv
-```
-Error Error [CredentialsError]: Missing credentials in config, if using AWS_CONFIG_FILE, set AWS_SDK_LOAD_CONFIG=1
-```
+While the cron command was in `/etc/crontab`, it seems it could have equivalently been added by creating `/etc/cron.d/crontab`.
 
 ## S3 Permissions
 
