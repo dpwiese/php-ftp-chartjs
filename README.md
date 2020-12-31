@@ -3,15 +3,21 @@
 This repo contains source code for a small project: create quasi-realtime charts on a Wordpress site from data periodically uploaded to an FTP server.
 The most convenient approach would have been connecting to the FTP server from the browser to access, parse, and plot the data.
 This would've created issues doing this securely without exposing the FTP credentials, and would have created performance limitations if there was a lot of data that needed to be parsed.
-Furthermore, it seems browsers are dropping support for FTP anyway as described in the Chrome Platform Status [Feature: Deprecate FTP support (deprecated)](https://www.chromestatus.com/feature/6246151319715840) page, on the Bugzilla ticket [Remove FTP support](https://bugzilla.mozilla.org/show_bug.cgi?id=1574475), as well as in the Mozilla Blog [What to expect for the upcoming deprecation of FTP in Firefox](https://blog.mozilla.org/addons/2020/04/13/what-to-expect-for-the-upcoming-deprecation-of-ftp-in-firefox/).
+Regardless, it seems browsers are dropping support for FTP anyway as described in the Chrome Platform Status [Feature: Deprecate FTP support (deprecated)](https://www.chromestatus.com/feature/6246151319715840) page, on the Bugzilla ticket [Remove FTP support](https://bugzilla.mozilla.org/show_bug.cgi?id=1574475), as well as in the Mozilla Blog [What to expect for the upcoming deprecation of FTP in Firefox](https://blog.mozilla.org/addons/2020/04/13/what-to-expect-for-the-upcoming-deprecation-of-ftp-in-firefox/).
 Now, browsers like Safari 14 and Chrome 87 both launch the built-in file manager when attempting to access an FTP server.
+
 It seems [XMLHttpRequest](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest) used to be a potential option, as described in the [2014 documentation](https://web.archive.org/web/20141205110759/https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest):
 
 > Despite its name, `XMLHttpRequest` can be used to retrieve any type of data, not just XML, and it supports protocols other than HTTP (including file and ftp).
 
-However, that is no longer the case. Basically, all this meant that if the FTP needed to be accessed, it needed to be done server-side.
+However, that is no longer the case.
+Basically, all this meant that if the FTP needed to be accessed, it needed to be done server-side.
 
 This was a more sensible implementation for the reasons described above - FTP credentials could be hidden from the user, and computation could be more performant server-side.
+The downside with this approach, described below, can be performance loss and complexity in an otherwise simple (e.g. Wordpress) site if there are many files and lots of data that need to be pulled and parsed before displaying it.
+
+A third and most complex option, although likely the correct approach given the specifics of the problem, is to make a worker connect to the FTP server periodically, retrieve new data files, parse and downsample the data, and save it as JSON where it can be easily accessed via HTTPS from the browser.
+This is quite a straightforward approach but could require creating an API if the constraints of the problem change, for example needing to specify the downsample rate, the time period of data to return, or the particular metric from within the data to return.
 
 # EC2 FTP Server
 
@@ -21,12 +27,13 @@ This seemed like a convenient option:
 
 > Simple and seamless file transfer to Amazon S3 using SFTP, FTPS, and FTP
 
-But at $0.30 per hour just to have the FTP endpoint enabled was about $216/month which was way too much.
+This seemed like it could be a cheap and simple way to throw some sample data into an S3 bucket and configure an FTP endpoint to give access to that data.
+But at $0.30 per hour just to have the FTP endpoint enabled was about $216/month which was way too much, so I never figured out whether it was simple or not.
 There didn't seem to be any other good cheap or free FTP servers for such a project - just somewhere to throw a few megabytes of data and test reading the data from an FTP client.
 EC2 seemed like a convenient and flexible way to go.
 
-Check the EC2 [On-Demand Pricing](https://aws.amazon.com/ec2/pricing/on-demand/) a t3a.nano is $0.0047 per Hour or less than $3.50/month.
-After launching the instance the following links were helpful to connect:
+Checking the EC2 [On-Demand Pricing](https://aws.amazon.com/ec2/pricing/on-demand/), a t3a.nano is $0.0047 per Hour or less than $3.50/month.
+After launching the instance the following links were helpful:
 [Connect to your Linux instance using an SSH client](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AccessingInstancesLinux.html) and [Get information about your instance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs.html#connection-prereqs-get-info-about-instance) which said:
 
 > For Amazon Linux 2 or the Amazon Linux AMI, the user name is `ec2-user`.
@@ -39,7 +46,7 @@ To connect via SSH with the downloaded key, the following command is used:
 
 With a new EC2 instance created, I now needed to start an FTP server.
 
-# Setting up FTP
+## Setting up the FTP Server on EC2
 
 The post [How to Configure FTP on AWS EC2](https://medium.com/tensult/configure-ftp-on-aws-ec2-85b5b56b9c94) was one of the first ones to show up in search, and had the few simple steps to follow to install and configure [vsftpd](https://security.appspot.com/vsftpd.html).
 
@@ -59,8 +66,11 @@ Default directory when connecting contained a single subdirectory `pub` which is
 ```
 
 Having following the steps in the post above, the FTP server was ready to develop and test against.
+With some test data in `/var/ftp/` the user `awsftpuser` and its corresponding password were used to connect.
 
-# PHP Setup
+# Accessing FTP from PHP
+
+## Environment Setup
 
 Running [PHP's Built-in web server](https://www.php.net/manual/en/features.commandline.webserver.php) to serve locally
 
@@ -84,6 +94,8 @@ Available on [packagist.org](https://packagist.org/packages/vlucas/phpdotenv).
 
 With minimal effort, `index.php` was served up locally, containing the code to connect to the FTP server, read and parse the data, and then pass it to JavaScript for plotting with [Chart.js](https://www.chartjs.org).
 
+## Retrieving and Plotting the Data
+
 Note in the code below the backtick for using multiline string, since when this example was first implemented `$bar` were the contents of a file, including newlines, which created an error `Uncaught SyntaxError: Invalid or unexpected token`.
 
 ```html
@@ -91,6 +103,37 @@ Note in the code below the backtick for using multiline string, since when this 
   var foo = `<?php echo $bar; ?>`;
   console.log(foo);
 </script>
+```
+
+Didn't need this?
+
+```php
+// Set passive address false
+ftp_set_option($ftp_conn, FTP_USEPASVADDRESS, false);
+```
+
+Also this
+
+```php
+foreach ($files as $file) {
+  // get the last modified time for the file
+  // This is an expensive operation... Takes 10 seconds or so to get timestamp for all of ~800 files
+  // https://stackoverflow.com/questions/16055235/how-can-i-download-the-most-recent-file-on-ftp-with-php/16056100
+  $time = ftp_mdtm($ftp_conn, $file);
+  var_dump($time);
+}
+```
+
+and clock time
+
+```php
+// DEBUG: Start time
+$time_start = microtime(true);
+
+// DEBUG: End time
+$time_end = microtime(true);
+$execution_time = ($time_end - $time_start);
+echo '<b>Total Execution Time:</b> '.$execution_time.' Seconds';
 ```
 
 This approach did work, using the [PHP FTP Extension](https://www.php.net/manual/en/book.ftp.php) and it's `ftp_fget()` function to read files from the FTP server, and functions like `str_getcsv()` to read and parse the CSV files, and downsample the contained data.
@@ -101,7 +144,7 @@ At 500 ms each, this meant it would take about one minute to download them all.
 
 Even with an order of magnitude increase in the download speed, it would still be too slow to use for its intended purpose.
 The downloads could also potentially be parallelized.
-The complexity required to do this and the limitations are not completely known to me, but regardless of how optimized this could be made, it's not a great approach to say the least to fetch 72 mb of data on each page load.
+The complexity required to do this and the limitations are not completely known to me, but regardless of how optimized this could be made, it doesn't remove the need to fetch 72 mb of data on each page load.
 
 At this point there are two obvious alternatives to me.
 1. Save the downloaded and parsed data to disk with something like `file_put_contents()` and use this local data for plotting.
@@ -114,25 +157,96 @@ Given this application need only quasi-realtime data, this seems like the most r
 
 # Worker
 
-Need to be able to:
-* List most recent files? Can trust the modified time? Or use filename? (Probably filename).
-* Read most recent files .If based on alphabetically ordered filename can do n number of files, or back to certain date? But if using dates it could be a pain, or just have to use a library to do something like `today - 5.days`.
-* Parse the files and save (as JSON?) to file, overwritng preexisting file.
-* Make API to return this JSON. If I write the file to S3, can just read from S3 from PHP site.
+This was best implemented on EC2.
+The instance used for the FTP above could use cron to run this script, and store the files downloaded from the FTP.
 
-There were several FTP clients available for node, went with
+## Dependencies
 
-https://github.com/patrickjuchli/basic-ftp
-https://www.npmjs.com/package/basic-ftp
+There were a few FTP clients available for node, including [node-ftp](https://github.com/mscdex/node-ftp), [jsftp](https://github.com/sergi/jsftp), and [basic-ftp](https://github.com/patrickjuchli/basic-ftp) - the least popular option but with promise-based that was selected for this project.
 
-Dotenv
+[dotenv](https://github.com/motdotla/dotenv) was used to retrieve the FTP conviguration from `.env` as well as the AWS configuration.
+On my local environment, the credentials needed for the AWS SDK was automatically loaded from `~/.aws/credentials`, but on EC2 it wasn't immediately obvious what was wrong.
+A quick solution was to just use dotenv.
 
-https://github.com/motdotla/dotenv
+To parse the downloaded CSV, [csv.js](https://csv.js.org) was used.
+Given some of the data turned out to be malformed, the [`skip_lines_with_error`](https://csv.js.org/parse/options/skip_lines_with_error/) option was useful.
+
+## Cron
+
+https://stackoverflow.com/questions/10472173/cannot-get-cron-to-work-on-amazon-ec2
+
+```sh
+# Edit this file instead, system-wide crontab
+% sudo nano /etc/crontab
+
+# Check crontab status
+% /bin/systemctl status crond.service
+
+# Restart cron
+% /bin/systemctl restart crond.service
+
+# 
+% journalctl |grep -i cron|tail -20
+```
+
+Following is `/etc/crontab`:
+
+```
+# Pull and process PEARL data every hour on the hour
+0 * * * * root cd /home/ec2-user/pearl && /root/.nvm/versions/node/v15.5.0/bin/node ./worker.js > /tmp/cron.log
+```
+
+https://forums.aws.amazon.com/thread.jspa?threadID=311106
+
+Tried creating file `/etc/cron.d/crontab`.
+This didn't solve any of the problems...
+
+CRON ERRORS ARE GOING TO MAIL:
+
+```sh
+% cat /var/spool/mail/root
+```
+
+https://stackoverflow.com/questions/54557146/not-able-to-use-node-js-and-crontab
+
+Just edit `/etc/crontab` to add my job, although other places like `/etc/cron.d/crontab` would probably work just as well.
+
+Need to put full path to `node` in cron command or can't find it:
+```
+/bin/sh: node: command not found
+```
+so
+```
+% which node
+/root/.nvm/versions/node/v15.5.0/bin/node
+```
+
+* Run cron as root or can't execute `node` for some reason
+* Also need to run as root to write the output to file via `> /tmp/cron.log`
+* To debug check the mailer `% cat /var/spool/mail/root`
+* To check output see `% cat /tmp/cron.log`
+* AWS credentials error, so set them in the script with dotenv
+```
+Error Error [CredentialsError]: Missing credentials in config, if using AWS_CONFIG_FILE, set AWS_SDK_LOAD_CONFIG=1
+```
+
+## S3 Permissions
+
+Writing to S3, bucket ACL and CORS permissioning
+
+https://stackoverflow.com/questions/17533888/s3-access-control-allow-origin-header
+
+https://codeburst.io/javascript-async-await-with-foreach-b6ba62bbf404
 
 # References
 
 [Apptio Blog: Can Amazon EC2’s Burstable T3s Optimize Costs?](https://www.apptio.com/blog/aws-ec2-t3-cost-optimization/)
 
-> T3 instances feature the Intel Xeon Platinum 8000 series (Skylake-SP) processor with a sustained all core turbo CPU clock speed of up to 3.1 GHz. T3a instances feature the AMD EPYC 7000 series processor with an all core turbo CPU clock speed of up to 2.5 GHz.
+> T3 instances feature the Intel Xeon Platinum 8000 series (Skylake-SP) processor with a sustained all core turbo CPU clock speed of up to 3.1 GHz.
+> T3a instances feature the AMD EPYC 7000 series processor with an all core turbo CPU clock speed of up to 2.5 GHz.
 
 [PHP CS Fixer](https://cs.symfony.com)
+
+[Active FTP vs. Passive FTP, a Definitive Explanation](https://slacksite.com/other/ftp.html)
+
+[Using and Running Node.js Modules in The Browser](https://www.techiediaries.com/how-to-bring-node-js-modules-to-the-browser/)

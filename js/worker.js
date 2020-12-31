@@ -1,5 +1,3 @@
-// % node worker.js
-
 require('dotenv').config();
 const ftp = require("basic-ftp");
 const AWS = require('aws-sdk');
