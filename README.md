@@ -27,6 +27,9 @@ This is quite a straightforward approach but could require creating an API if th
 ```sh
 # Install
 % npm install
+
+# Run eslint
+% npm run lint
 ```
 
 # EC2 FTP Server
