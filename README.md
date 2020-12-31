@@ -28,8 +28,11 @@ This is quite a straightforward approach but could require creating an API if th
 # Install
 % npm install
 
-# Compile
+# Check only
 % tsc --noEmit --project tsconfig.json
+
+# Compile
+% tsc --project tsconfig.json
 
 # Run eslint
 % npm run lint

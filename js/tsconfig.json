@@ -1,9 +1,13 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "forceConsistentCasingInFileNames": true,
+    "module": "es2015",
     "moduleResolution": "node",
+    "outDir": "",
+    "removeComments": false,
+    "target": "es2020"
   },
   "include" :[
-    "./worker.ts"
+    "./src/worker.ts"
   ]
 }
