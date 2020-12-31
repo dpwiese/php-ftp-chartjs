@@ -5,6 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const parse = require("csv-parse/lib/sync");
 
+import { FileInfo } from "basic-ftp";
+
 // Constants
 const FTP_REMOTE_PATH = "inbound_wifi/";
 const LOCAL_DOWNLOAD_PATH = "./download/";
@@ -27,44 +29,44 @@ ftpClient.ftp.verbose = false;
 
 run();
 
-async function run() {
+async function run(): Promise<void> {
   // Get list of all files on FTP server
-  const ftpFiles = await connectAndGetFileList();
-  const ftpFileNames = ftpFiles.map(f => f.name);
+  const ftpFiles: Array<FileInfo> = await connectAndGetFileList();
+  const ftpFileNames: Array<string> = ftpFiles.map(f => f.name);
 
   // Generate substrings corresponding to recent files
-  const fileNameSubstrings = generateRecentSubstrings();
+  const fileNameSubstrings: Array<string> = generateRecentSubstrings();
 
   // Push all file names whose data should be plotted to fileNames
-  const recentFileNames = ftpFileNames.filter(fileName => fileNameSubstrings.some(s => fileName.includes(s)));
+  const recentFileNames: Array<string> = ftpFileNames.filter(fileName => fileNameSubstrings.some(s => fileName.includes(s)));
 
   // Get local filenames
-  const localFileNames = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
+  const localFileNames: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
 
   // Get list of files to download that don't already exist locally
-  const filesToDownload = recentFileNames.filter(recentFileName => !localFileNames.includes(recentFileName));
+  const filesToDownload: Array<string> = recentFileNames.filter(recentFileName => !localFileNames.includes(recentFileName));
 
   // Download files
   await downloadFilesFromFtp(filesToDownload);
 
   // Figure out which local files are old and should be deleted
-  const updatedLocalFileNames = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
-  const localFileNamesToDelete = updatedLocalFileNames.filter(fileName => !fileNameSubstrings.some(s => fileName.includes(s)));
+  const updatedLocalFileNames: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH);
+  const localFileNamesToDelete: Array<string> = updatedLocalFileNames.filter(fileName => !fileNameSubstrings.some(s => fileName.includes(s)));
 
   // Delete old local files
-  await deleteOldFiles(localFileNamesToDelete);
+  await deleteLocalFiles(localFileNamesToDelete);
 
-  const pearlDate = [];
-  const pearlTimeEst = [];
-  const pearlBmpTempC = [];
-  const pearlLpsTempC = [];
-  const pearlShtTempC = [];
-  const pearlShtHumidPercent = [];
-  const pearlWindSpeedMS = [];
-  const pearlDs18TempC = [];
+  const pearlDate: Array<string> = [];
+  const pearlTimeEst: Array<string> = [];
+  const pearlBmpTempC: Array<string> = [];
+  const pearlLpsTempC: Array<string> = [];
+  const pearlShtTempC: Array<string> = [];
+  const pearlShtHumidPercent: Array<string> = [];
+  const pearlWindSpeedMS: Array<string> = [];
+  const pearlDs18TempC: Array<string> = [];
 
   // Sort remaining recent local files by name before processing
-  const localFilesToUpload = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort(alphabetize);
+  const localFilesToUpload: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort(alphabetize);
 
   // Parse each local CSV file and push the data to local array
   localFilesToUpload.forEach(file => {
@@ -86,7 +88,18 @@ async function run() {
     }
   });
 
-  const pearlData = {
+  interface PearlData {
+    date: Array<string>;
+    time: Array<string>;
+    bmpTempC: Array<string>;
+    lpsTempC: Array<string>;
+    shtTempC: Array<string>;
+    shtHumidPercent: Array<string>;
+    windSpeedMS: Array<string>;
+    ds18TempC: Array<string>;
+  }
+
+  const pearlData: PearlData = {
     date: pearlDate,
     time: pearlTimeEst,
     bmpTempC: pearlBmpTempC,
@@ -97,7 +110,7 @@ async function run() {
     ds18TempC: pearlDs18TempC,
   };
 
-  const pearlJson = JSON.stringify(pearlData);
+  const pearlJson: string = JSON.stringify(pearlData);
 
   fs.writeFile(DEST_FILE, pearlJson, (err) => {
     if (err) {
@@ -120,7 +133,7 @@ async function run() {
 }
 
 //
-async function deleteOldFiles(fileNames) {
+async function deleteLocalFiles(fileNames: Array<string>): Promise<void> {
   try {
     await asyncForEach(fileNames, async (fileName) => {
       await fs.unlinkSync(`${LOCAL_DOWNLOAD_PATH}${fileName}`);
@@ -131,7 +144,7 @@ async function deleteOldFiles(fileNames) {
 }
 
 //
-function alphabetize(a, b) {
+function alphabetize(a, b): number {
   if (a.name < b.name) {
     return -1;
   }
@@ -142,7 +155,7 @@ function alphabetize(a, b) {
 }
 
 //
-function generateRecentSubstrings() {
+function generateRecentSubstrings(): Array<string> {
   const fileNames = [];
 
   // Generate substrings corresponding to recent files
@@ -167,9 +180,9 @@ async function asyncForEach(array, callback) {
 }
 
 // const downloadFromFtp = async (files) => {
-async function downloadFilesFromFtp(fileNames) {
+async function downloadFilesFromFtp(fileNames: Array<string>): Promise<void> {
   try {
-    await asyncForEach(fileNames, async (fileName) => {
+    await asyncForEach(fileNames, async (fileName: string) => {
       await ftpClient.downloadTo(`${LOCAL_DOWNLOAD_PATH}${fileName}`, `${FTP_REMOTE_PATH}${fileName}`);
     });
     ftpClient.close();
@@ -180,7 +193,7 @@ async function downloadFilesFromFtp(fileNames) {
 }
 
 //
-async function connectAndGetFileList() {
+async function connectAndGetFileList(): Promise<FileInfo[]> {
   try {
     await ftpClient.access({
       host: process.env.FTP_SERVER,
@@ -188,7 +201,7 @@ async function connectAndGetFileList() {
       password: process.env.FTP_PASSWORD,
       secure: true
     });
-    const files = await ftpClient.list(FTP_REMOTE_PATH);
+    const files: Array<FileInfo> = await ftpClient.list(FTP_REMOTE_PATH);
     return files;
   }
   catch(err) {

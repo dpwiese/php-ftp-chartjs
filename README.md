@@ -28,6 +28,9 @@ This is quite a straightforward approach but could require creating an API if th
 # Install
 % npm install
 
+# Compile
+% tsc --noEmit --project tsconfig.json
+
 # Run eslint
 % npm run lint
 ```
