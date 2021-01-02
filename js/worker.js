@@ -39,6 +39,11 @@ async function run() {
     const pearlShtHumidPercent = [];
     const pearlWindSpeedMS = [];
     const pearlDs18TempC = [];
+    const pearlLpsPressHpa = [];
+    const pearlLux = [];
+    const pearlHtuTempC = [];
+    const pearlHtuHumidPercent = [];
+    const pearlBmpPressPa = [];
     const localFilesToUpload = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort();
     localFilesToUpload.forEach((file) => {
         const records = parse(fs.readFileSync(`${LOCAL_DOWNLOAD_PATH}${file}`, "utf8"), {
@@ -50,11 +55,16 @@ async function run() {
             pearlDate.push(records[i]["Date"]);
             pearlTimeEst.push(records[i]["Time (EST)"]);
             pearlBmpTempC.push(records[i]["BMP temp(C)"]);
-            pearlLpsTempC.push(records[i]["LPS temp (C)"]);
+            pearlLpsTempC.push(correctLpsTemp(parseFloat(records[i]["LPS temp (C)"])).toFixed(2));
             pearlShtTempC.push(records[i]["SHTtemp (C)"]);
             pearlShtHumidPercent.push(records[i]["SHThumid (%)"]);
             pearlWindSpeedMS.push(records[i]["Wind Speed (m/s)"]);
             pearlDs18TempC.push(records[i]["DS18temp (C)"]);
+            pearlLpsPressHpa.push(records[i]["LPS press (hPa)"]);
+            pearlLux.push(records[i]["Lux"]);
+            pearlHtuTempC.push(records[i]["HTU temp (C)"]);
+            pearlHtuHumidPercent.push(records[i]["HTU humid(%)"]);
+            pearlBmpPressPa.push(records[i]["BMP press(Pa)"]);
         }
     });
     const pearlData = {
@@ -66,6 +76,11 @@ async function run() {
         shtHumidPercent: pearlShtHumidPercent,
         windSpeedMS: pearlWindSpeedMS,
         ds18TempC: pearlDs18TempC,
+        lpsPressHpa: pearlLpsPressHpa,
+        lux: pearlLux,
+        htuTempC: pearlHtuTempC,
+        htuHumidPercent: pearlHtuHumidPercent,
+        bmpPressPa: pearlBmpPressPa,
     };
     const pearlJson = JSON.stringify(pearlData);
     fs.writeFile(DEST_FILE, pearlJson, (err) => {
@@ -85,6 +100,9 @@ async function run() {
             }
         });
     });
+}
+function correctLpsTemp(temp) {
+    return temp > 327.67 ? temp - 655.36 : temp;
 }
 async function deleteLocalFiles(fileNames) {
     try {

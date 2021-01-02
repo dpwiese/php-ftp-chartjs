@@ -72,6 +72,11 @@ async function run(): Promise<void> {
   const pearlShtHumidPercent: Array<string> = [];
   const pearlWindSpeedMS: Array<string> = [];
   const pearlDs18TempC: Array<string> = [];
+  const pearlLpsPressHpa: Array<string> = [];
+  const pearlLux: Array<string> = [];
+  const pearlHtuTempC: Array<string> = [];
+  const pearlHtuHumidPercent: Array<string> = [];
+  const pearlBmpPressPa: Array<string> = [];
 
   // Sort remaining recent local files by name before processing
   const localFilesToUpload: Array<string> = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort();
@@ -88,11 +93,16 @@ async function run(): Promise<void> {
       pearlDate.push(records[i]["Date"]);
       pearlTimeEst.push(records[i]["Time (EST)"]);
       pearlBmpTempC.push(records[i]["BMP temp(C)"]);
-      pearlLpsTempC.push(records[i]["LPS temp (C)"]);
+      pearlLpsTempC.push(correctLpsTemp(parseFloat(records[i]["LPS temp (C)"])).toFixed(2));
       pearlShtTempC.push(records[i]["SHTtemp (C)"]);
       pearlShtHumidPercent.push(records[i]["SHThumid (%)"]);
       pearlWindSpeedMS.push(records[i]["Wind Speed (m/s)"]);
       pearlDs18TempC.push(records[i]["DS18temp (C)"]);
+      pearlLpsPressHpa.push(records[i]["LPS press (hPa)"]);
+      pearlLux.push(records[i]["Lux"]);
+      pearlHtuTempC.push(records[i]["HTU temp (C)"]);
+      pearlHtuHumidPercent.push(records[i]["HTU humid(%)"]);
+      pearlBmpPressPa.push(records[i]["BMP press(Pa)"]);
     }
   });
 
@@ -105,6 +115,11 @@ async function run(): Promise<void> {
     shtHumidPercent: Array<string>;
     windSpeedMS: Array<string>;
     ds18TempC: Array<string>;
+    lpsPressHpa: Array<string>;
+    lux: Array<string>;
+    htuTempC: Array<string>;
+    htuHumidPercent: Array<string>;
+    bmpPressPa: Array<string>;
   }
 
   const pearlData: PearlData = {
@@ -116,6 +131,11 @@ async function run(): Promise<void> {
     shtHumidPercent: pearlShtHumidPercent,
     windSpeedMS: pearlWindSpeedMS,
     ds18TempC: pearlDs18TempC,
+    lpsPressHpa: pearlLpsPressHpa,
+    lux: pearlLux,
+    htuTempC: pearlHtuTempC,
+    htuHumidPercent: pearlHtuHumidPercent,
+    bmpPressPa: pearlBmpPressPa,
   };
 
   const pearlJson: string = JSON.stringify(pearlData);
@@ -139,6 +159,11 @@ async function run(): Promise<void> {
       }
     });
   });
+}
+
+//
+function correctLpsTemp(temp: number): number {
+  return temp > 327.67 ? temp - 655.36 : temp;
 }
 
 //
