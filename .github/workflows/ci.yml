@@ -4,8 +4,8 @@ on: [push]
 
 jobs:
   lint:
-    # Checkout, install dependencies, and lint
-    name: Lint code base
+    # Checkout, install dependencies, typecheck, and lint
+    name: Typecheck and lint
 
     runs-on: ubuntu-latest
 
