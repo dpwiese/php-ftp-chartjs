@@ -23,7 +23,7 @@ jobs:
         run: npm install
 
       - name: Typecheck
-        run: tsc
+        run: tsc --noEmit --project tsconfig.json
 
       - name: Lint
         run: npm run lint
