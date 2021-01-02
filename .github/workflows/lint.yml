@@ -20,10 +20,10 @@ jobs:
           node-version: '15.x'
 
       - name: Install dependencies
-        run: npm install
+        run: cd ./js && npm install
 
       - name: Typecheck
-        run: tsc --noEmit --project tsconfig.json
+        run: tsc --noEmit
 
       - name: Lint
         run: npm run lint
