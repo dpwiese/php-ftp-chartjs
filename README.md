@@ -1,5 +1,7 @@
 # PHP FTP ChartJS
 
+![node-ci](https://github.com/dpwiese/php-ftp-chartjs/workflows/node-ci/badge.svg)
+
 This repo contains source code for a small project: **create quasi-realtime charts on a Wordpress site from data periodically uploaded to an FTP server**.
 
 ## Introduction
