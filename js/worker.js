@@ -8,7 +8,7 @@ const parse = require("csv-parse/lib/sync");
 const FTP_REMOTE_PATH = "inbound_wifi/";
 const LOCAL_DOWNLOAD_PATH = "./download/";
 const S3_DEST_BUCKET_NAME = process.env.S3_DEST_BUCKET_NAME;
-const AWS_REGION = "us-east-1";
+const AWS_REGION = process.env.AWS_REGION;
 const CHART_PAST_DAYS = 5;
 const DEST_FILE = "out.json";
 AWS.config.update({ region: AWS_REGION });
@@ -39,6 +39,11 @@ async function run() {
     const pearlShtHumidPercent = [];
     const pearlWindSpeedMS = [];
     const pearlDs18TempC = [];
+    const pearlLpsPressHpa = [];
+    const pearlLux = [];
+    const pearlHtuTempC = [];
+    const pearlHtuHumidPercent = [];
+    const pearlBmpPressPa = [];
     const localFilesToUpload = fs.readdirSync(LOCAL_DOWNLOAD_PATH).sort();
     localFilesToUpload.forEach((file) => {
         const records = parse(fs.readFileSync(`${LOCAL_DOWNLOAD_PATH}${file}`, "utf8"), {
@@ -50,11 +55,16 @@ async function run() {
             pearlDate.push(records[i]["Date"]);
             pearlTimeEst.push(records[i]["Time (EST)"]);
             pearlBmpTempC.push(records[i]["BMP temp(C)"]);
-            pearlLpsTempC.push(records[i]["LPS temp (C)"]);
+            pearlLpsTempC.push(correctLpsTemp(parseFloat(records[i]["LPS temp (C)"])).toFixed(2));
             pearlShtTempC.push(records[i]["SHTtemp (C)"]);
             pearlShtHumidPercent.push(records[i]["SHThumid (%)"]);
-            pearlWindSpeedMS.push(records[i]["Wind Speed (m/s)"]);
+            pearlWindSpeedMS.push(windSpeedFromVolts(parseFloat(records[i]["Wind Reading (V)"])).toFixed(4));
             pearlDs18TempC.push(records[i]["DS18temp (C)"]);
+            pearlLpsPressHpa.push(records[i]["LPS press (hPa)"]);
+            pearlLux.push(records[i]["Lux"]);
+            pearlHtuTempC.push(records[i]["HTU temp (C)"]);
+            pearlHtuHumidPercent.push(records[i]["HTU humid(%)"]);
+            pearlBmpPressPa.push(records[i]["BMP press(Pa)"]);
         }
     });
     const pearlData = {
@@ -66,6 +76,11 @@ async function run() {
         shtHumidPercent: pearlShtHumidPercent,
         windSpeedMS: pearlWindSpeedMS,
         ds18TempC: pearlDs18TempC,
+        lpsPressHpa: pearlLpsPressHpa,
+        lux: pearlLux,
+        htuTempC: pearlHtuTempC,
+        htuHumidPercent: pearlHtuHumidPercent,
+        bmpPressPa: pearlBmpPressPa,
     };
     const pearlJson = JSON.stringify(pearlData);
     fs.writeFile(DEST_FILE, pearlJson, (err) => {
@@ -85,6 +100,12 @@ async function run() {
             }
         });
     });
+}
+function correctLpsTemp(temp) {
+    return temp > 327.67 ? temp - 655.36 : temp;
+}
+function windSpeedFromVolts(volts) {
+    return 6.681 * volts + 0.921;
 }
 async function deleteLocalFiles(fileNames) {
     try {
