@@ -8,7 +8,7 @@ const parse = require("csv-parse/lib/sync");
 const FTP_REMOTE_PATH = "inbound_wifi/";
 const LOCAL_DOWNLOAD_PATH = "./download/";
 const S3_DEST_BUCKET_NAME = process.env.S3_DEST_BUCKET_NAME;
-const AWS_REGION = "us-east-1";
+const AWS_REGION = process.env.AWS_REGION;
 const CHART_PAST_DAYS = 5;
 const DEST_FILE = "out.json";
 AWS.config.update({ region: AWS_REGION });
