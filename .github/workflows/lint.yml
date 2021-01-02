@@ -20,10 +20,13 @@ jobs:
           node-version: '15.x'
 
       - name: Install dependencies
-        run: cd ./js && npm install
+        working-directory: ./js
+        run: npm install
 
       - name: Typecheck
+        working-directory: ./js
         run: tsc --noEmit
 
       - name: Lint
+        working-directory: ./js
         run: npm run lint
