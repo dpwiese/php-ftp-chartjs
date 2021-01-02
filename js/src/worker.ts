@@ -96,7 +96,7 @@ async function run(): Promise<void> {
       pearlLpsTempC.push(correctLpsTemp(parseFloat(records[i]["LPS temp (C)"])).toFixed(2));
       pearlShtTempC.push(records[i]["SHTtemp (C)"]);
       pearlShtHumidPercent.push(records[i]["SHThumid (%)"]);
-      pearlWindSpeedMS.push(records[i]["Wind Speed (m/s)"]);
+      pearlWindSpeedMS.push(windSpeedFromVolts(parseFloat(records[i]["Wind Reading (V)"])).toFixed(4));
       pearlDs18TempC.push(records[i]["DS18temp (C)"]);
       pearlLpsPressHpa.push(records[i]["LPS press (hPa)"]);
       pearlLux.push(records[i]["Lux"]);
@@ -164,6 +164,11 @@ async function run(): Promise<void> {
 //
 function correctLpsTemp(temp: number): number {
   return temp > 327.67 ? temp - 655.36 : temp;
+}
+
+//
+function windSpeedFromVolts(volts: number): number {
+  return 6.681 * volts + 0.921;
 }
 
 //
