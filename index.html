@@ -2,7 +2,7 @@
 <html>
   <head>
     <title>Line Chart</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.0.0-beta.7"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <style>
       html {
@@ -233,23 +233,25 @@
               }],
             },
             options: {
-              title: {
-                text: 'Deep Pond Air Temperature',
+              plugins: {
+                title: {
+                  text: 'Deep Pond Air Temperature',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Temperature (deg C)',
                   },
-                }]
+                }
               }
             }
           };
@@ -268,23 +270,25 @@
               }]
             },
             options: {
-              title: {
-                text: 'Deep Pond Relative Humidity',
+              plugins: {
+                title: {
+                  text: 'Deep Pond Relative Humidity',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Relative Humidity (%)'
                   },
-                }]
+                }
               }
             }
           };
@@ -303,23 +307,25 @@
               }]
             },
             options: {
-              title: {
-                text: 'Deep Pond Wind Speed',
+              plugins: {
+                title: {
+                  text: 'Deep Pond Wind Speed',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Wind Speed (m/s)'
                   },
-                }]
+                }
               }
             }
           };
@@ -338,23 +344,25 @@
               }],
             },
             options: {
-              title: {
-                text: 'Deep Pond Water Temperature',
+              plugins: {
+                title: {
+                  text: 'Deep Pond Water Temperature',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Temperature (deg C)',
                   },
-                }]
+                }
               }
             }
           };
@@ -373,23 +381,25 @@
               }],
             },
             options: {
-              title: {
-                text: 'Deep Pond Atmospheric Pressure',
+              plugins: {
+                title: {
+                  text: 'Deep Pond Atmospheric Pressure',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Pressure (hPa)',
                   },
-                }]
+                }
               }
             }
           };
@@ -408,23 +418,25 @@
               }],
             },
             options: {
-              title: {
-                text: 'Deep Pond Ambient Light',
+              plugins: {
+                title: {
+                  text: 'Deep Pond Ambient Light',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Ambient Light Intensity (Lux)',
                   },
-                }]
+                }
               }
             }
           };
@@ -451,23 +463,25 @@
               }],
             },
             options: {
-              title: {
-                text: 'PEARL Electronics Temperature',
+              plugins: {
+                title: {
+                  text: 'PEARL Electronics Temperature',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Temperature (deg C)',
                   },
-                }]
+                }
               }
             }
           };
@@ -486,23 +500,25 @@
               }],
             },
             options: {
-              title: {
-                text: 'PEARL Electronics Humidity',
+              plugins: {
+                title: {
+                  text: 'PEARL Electronics Humidity',
+                },
               },
               scales: {
-                xAxes: [{
+                xAxes: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                yAxes: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Relative Humidity (%)',
                   },
-                }]
+                }
               }
             }
           };
@@ -521,47 +537,49 @@
               }],
             },
             options: {
-              title: {
-                text: 'PEARL Electronics Pressure',
+              plugins: {
+                title: {
+                  text: 'PEARL Electronics Pressure',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
                   type: "linear",
                   display: true,
                   scaleLabel: scaleLabelOptions,
                   ticks: ticksOptions,
-                }],
-                yAxes: [{
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Pressure (hPa)',
                   },
-                }]
+                }
               }
             }
           };
 
           // Set chart label font size
-          Chart.defaults.global.defaultFontSize = window.innerWidth < 768 ? 8 : 14;
+          Chart.defaults.font.size = window.innerWidth < 768 ? 8 : 14;
 
           // Set tooltip timestamp
-          Chart.defaults.global.tooltips.mode = 'index';
-          Chart.defaults.global.tooltips.intersect = false;
-          Chart.defaults.global.tooltips.callbacks.title = function(tooltipItem, data) {
-            return moment(tooltipItem[0].label * 1000).format("DD-MMMM-YYYY h:mm A");
+          Chart.defaults.plugins.tooltip.mode = 'index';
+          Chart.defaults.plugins.tooltip.intersect = false;
+          Chart.defaults.plugins.tooltip.callbacks.title = function(tooltipItem) {
+            return moment(tooltipItem[0].dataPoint.x * 1000).format("DD-MMMM-YYYY h:mm A");
           };
 
           // Reponsive chart with title
-          Chart.defaults.global.responsive = true;
-          Chart.defaults.global.title.display = true;
+          Chart.defaults.responsive = true;
+          Chart.defaults.plugins.title.display = true;
 
           // Set hover
-          Chart.defaults.global.hover.mode = 'nearest';
-          Chart.defaults.global.hover.intersect = true;
+          Chart.defaults.hover.mode = 'nearest';
+          Chart.defaults.hover.intersect = true;
 
           // Increase space between legend and chart area
-          Chart.Legend.prototype.afterFit = function() {
+          Chart.Legend._element.prototype.afterFit = function() {
             this.height = this.height + 5;
           };
 
