@@ -2,7 +2,7 @@
 <html>
   <head>
     <title>Line Chart</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.0.0-beta.7"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <style>
       html {
@@ -101,23 +101,22 @@
                     </div>
                     <div class="wp-block-column">
                       <div class="canvas-container">
-                        <canvas id="humidity" height="200"></canvas>
+                        <canvas id="water-temperature" height="200"></canvas>
                       </div>
-                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vT5SQP04fSr8mj6N9Zg-1mphOc2fUcGNBQy7Oy4Q9LzOFtB5jWocjJT-8Xo9bZ4GjA5S1jQdO6bL55_/pub?gid=876434805&amp;single=true&amp;output=csv">Download relative humidity data</a><br>Sensor: <a href="https://www.adafruit.com/product/4099">SHT-30</a><br><em>(Note: The SHT-30 sensor has a built in heater that is programmed to toggle on for 10 seconds every 30 seconds to prevent moisture build up, resulting in sharp changes in relative humidity.)</em></p>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3oUAMws94f_ZJYqAZyp5mzWaDYwHO-GLHDLVh5DxONhpkURMMoFwrdoWY7-pjvGPcd4e4dUVml-d/pub?gid=1412652629&amp;single=true&amp;output=csv">Download water temperature data</a><br>Sensor: <a href="https://www.adafruit.com/product/4162">DS18B20</a></p>
                     </div>
                   </div>
                   <div class="wp-block-columns">
                     <div class="wp-block-column">
                       <div class="canvas-container">
-                        <canvas id="wind-speed" height="200"></canvas>
+                        <canvas id="humidity" height="200"></canvas>
                       </div>
-                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSnMvWkiFQghQi5XCGYaSBu0vZGAb9j99HokpzM7CAIK7161flWKsQ9B3kD-j3uBBhLreQQX1TdaROy/pub?gid=1130602342&amp;single=true&amp;output=csv">Download wind speed data</a><br>Sensor: <a href="https://www.dfrobot.com/product-1114.html">SEN0170</a></p>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vT5SQP04fSr8mj6N9Zg-1mphOc2fUcGNBQy7Oy4Q9LzOFtB5jWocjJT-8Xo9bZ4GjA5S1jQdO6bL55_/pub?gid=876434805&amp;single=true&amp;output=csv">Download relative humidity data</a><br>Sensor: <a href="https://www.adafruit.com/product/4099">SHT-30</a><br><em>(Note: The SHT-30 sensor has a built in heater that is programmed to toggle on for 10 seconds every 30 seconds to prevent moisture build up, resulting in sharp changes in relative humidity.)</em></p>
                     </div>
                     <div class="wp-block-column">
                       <div class="canvas-container">
-                        <canvas id="water-temperature" height="200"></canvas>
+                        <canvas id="ambient-light" height="200"></canvas>
                       </div>
-                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3oUAMws94f_ZJYqAZyp5mzWaDYwHO-GLHDLVh5DxONhpkURMMoFwrdoWY7-pjvGPcd4e4dUVml-d/pub?gid=1412652629&amp;single=true&amp;output=csv">Download water temperature data</a><br>Sensor: <a href="https://www.adafruit.com/product/4162">DS18B20</a></p>
                     </div>
                   </div>
                   <div class="wp-block-columns">
@@ -128,8 +127,9 @@
                     </div>
                     <div class="wp-block-column">
                       <div class="canvas-container">
-                        <canvas id="ambient-light" height="200"></canvas>
+                        <canvas id="wind-speed" height="200"></canvas>
                       </div>
+                      <p><a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSnMvWkiFQghQi5XCGYaSBu0vZGAb9j99HokpzM7CAIK7161flWKsQ9B3kD-j3uBBhLreQQX1TdaROy/pub?gid=1130602342&amp;single=true&amp;output=csv">Download wind speed data</a><br>Sensor: <a href="https://www.dfrobot.com/product-1114.html">SEN0170</a></p>
                     </div>
                   </div>
                   <div class="wp-block-columns">
@@ -168,70 +168,90 @@
       async function run() {
         let response = await fetch("https://s3.amazonaws.com/followpearl.mit.edu/out.json");
         if (response.ok) {
-          let pearlData = await response.json();
+          const pearlData = await response.json();
 
-          const pearlDateTime = pearlData.date.map((date, i) => {
-            return moment(`${date} ${pearlData.time[i]}`).format("DD-MMMM-YYYY h:mm A");
-          });
+          const unixEpoch = pearlData.time.map((t, i) => ( moment(`${pearlData.date[i]} ${t}`).unix()));
+
+          // Dirty hack to insert null data in gaps to break line plot
+          const fixGaps = (arr) => {
+            const out = [];
+            for (let i = 0; i < unixEpoch.length - 1; i++) {
+              const x = unixEpoch[i];
+              out.push({x, y: arr[i]});
+              if (unixEpoch[i+1] - x > 1500) {
+                out.push({x, y: null});
+              }
+            }
+            out.push({x: unixEpoch[unixEpoch.length - 1], y: arr[unixEpoch.length - 1]});
+            return out;
+          }
+
+          const ticksOptions = {
+            autoSkipPadding: 100,
+            autoSkip: true,
+            minRotation: 0,
+            maxRotation: 0,
+            callback: (value, index, values) => (moment(value * 1000).format("DD-MMMM-YYYY")),
+          };
+
+          const scaleLabelOptions = {
+            display: true,
+            labelString: 'Date (EST)',
+          }
+
+          const colors = {
+            blue: 'rgb(50, 50, 200)',
+            cerulean: 'rgb(52, 119, 206)',
+            gray: 'rgb(76, 76, 76)',
+            green: 'rgb(51, 146, 116)',
+            mango: 'rgb(224, 110, 60)',
+            orange: 'rgb(255, 128, 0)',
+            purple: 'rgb(153, 51, 255)',
+            red: 'rgb(218, 59, 33)',
+            royal: 'rgb(54, 105, 201)',
+          };
 
           const airTemperatureConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'LPS35HW',
-                backgroundColor: 'rgb(218, 59, 33)',
-                borderColor: 'rgb(218, 59, 33)',
-                data: pearlData.lpsTempC,
+                label: 'LPS35HW Sensor',
+                backgroundColor: colors.red,
+                borderColor: colors.red,
+                data: fixGaps(pearlData.lpsTempC),
                 fill: false,
                 pointRadius: 0,
+                lineTension: 0.1,
               }, {
-                label: 'SHT-30',
+                label: 'SHT-30 Sensor',
+                backgroundColor: colors.cerulean,
+                borderColor: colors.cerulean,
+                data: fixGaps(pearlData.shtTempC),
                 fill: false,
-                backgroundColor: 'rgb(52, 119, 206)',
-                borderColor: 'rgb(52, 119, 206)',
-                data: pearlData.shtTempC,
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'Deep Pond Air Temperature',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'Deep Pond Air Temperature',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
                   display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Date',
-                  },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Temperature (deg C)',
                   },
-                }]
+                }
               }
             }
           };
@@ -239,54 +259,36 @@
           const humidityConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Relative Humidity',
-                backgroundColor: 'rgb(224, 110, 60)',
-                borderColor: 'rgb(224, 110, 60)',
-                data: pearlData.shtHumidPercent,
+                label: 'SHT-30 Sensor',
+                backgroundColor: colors.mango,
+                borderColor: colors.mango,
+                data: fixGaps(pearlData.shtHumidPercent),
                 fill: false,
                 pointRadius: 0,
+                lineTension: 0.1,
               }]
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'Deep Pond Relative Humidity',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'Deep Pond Relative Humidity',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
                   display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Date'
-                  },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Relative Humidity (%)'
                   },
-                }]
+                }
               }
             }
           };
@@ -294,54 +296,36 @@
           const windSpeedConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Wind Speed',
-                backgroundColor: 'rgb(51, 146, 116)',
-                borderColor: 'rgb(51, 146, 116)',
-                data: pearlData.windSpeedMS,
+                label: 'SEN0170 Sensor',
+                backgroundColor: colors.green,
+                borderColor: colors.green,
+                data: fixGaps(pearlData.windSpeedMS),
                 fill: false,
                 pointRadius: 0,
+                lineTension: 0.1,
               }]
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'Deep Pond Wind Speed',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'Deep Pond Wind Speed',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
                   display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Date'
-                  },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Wind Speed (m/s)'
                   },
-                }]
+                }
               }
             }
           };
@@ -349,54 +333,36 @@
           const waterTemperatureConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Water Temperature',
+                label: 'DS18B20 Sensor',
                 fill: false,
-                backgroundColor: 'rgb(54, 105, 201)',
-                borderColor: 'rgb(54, 105, 201)',
-                data: pearlData.ds18TempC,
+                backgroundColor: colors.royal,
+                borderColor: colors.royal,
+                data: fixGaps(pearlData.ds18TempC),
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'Deep Pond Water Temperature',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'Deep Pond Water Temperature',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
                   display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Date',
-                  },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Temperature (deg C)',
                   },
-                }]
+                }
               }
             }
           };
@@ -404,54 +370,36 @@
           const atmosphericPressureConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Atmospheric Pressure',
+                label: 'LPS35HW Sensor',
                 fill: false,
-                backgroundColor: 'rgb(153, 51, 255)',
-                borderColor: 'rgb(153, 51, 255)',
-                data: pearlData.lpsPressHpa,
+                backgroundColor: colors.purple,
+                borderColor: colors.purple,
+                data: fixGaps(pearlData.lpsPressHpa),
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'Deep Pond Atmospheric Pressure',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'Deep Pond Atmospheric Pressure',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
+                  display: true,
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
-                    labelString: 'Date',
+                    labelString: 'Pressure (hPa)',
                   },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
-                  display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Atmospheric Pressure (hPa)',
-                  },
-                }]
+                }
               }
             }
           };
@@ -459,54 +407,36 @@
           const ambientLightConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Ambient Light',
+                label: 'VEML7700 Sensor',
                 fill: false,
-                backgroundColor: 'rgb(76, 76, 76)',
-                borderColor: 'rgb(76, 76, 76)',
-                data: pearlData.lux,
+                backgroundColor: colors.gray,
+                borderColor: colors.gray,
+                data: fixGaps(pearlData.lux),
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'Deep Pond Ambient Light',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'Deep Pond Ambient Light',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
+                  display: true,
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
-                    labelString: 'Date',
+                    labelString: 'Ambient Light Intensity (Lux)',
                   },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
-                  display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Ambient Light',
-                  },
-                }]
+                }
               }
             }
           };
@@ -514,61 +444,44 @@
           const pearlTemperatureConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'HTU',
-                backgroundColor: 'rgb(218, 59, 33)',
-                borderColor: 'rgb(218, 59, 33)',
-                data: pearlData.htuTempC,
+                label: 'HTU21D-F Sensor',
+                backgroundColor: colors.red,
+                borderColor: colors.red,
+                data: fixGaps(pearlData.htuTempC),
                 fill: false,
                 pointRadius: 0,
+                lineTension: 0.1,
               }, {
-                label: 'BMP',
+                label: 'BMP280 Sensor',
                 fill: false,
-                backgroundColor: 'rgb(52, 119, 206)',
-                borderColor: 'rgb(52, 119, 206)',
-                data: pearlData.bmpTempC,
+                backgroundColor: colors.cerulean,
+                borderColor: colors.cerulean,
+                data: fixGaps(pearlData.bmpTempC),
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'PEARL Electronics Temperature',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'PEARL Electronics Temperature',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
                   display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Date',
-                  },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
                     labelString: 'Temperature (deg C)',
                   },
-                }]
+                }
               }
             }
           };
@@ -576,54 +489,36 @@
           const pearlHumidityConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Humidity (%)',
+                label: 'HTU21D-F Sensor',
                 fill: false,
-                backgroundColor: 'rgb(255, 128, 0)',
-                borderColor: 'rgb(255, 128, 0)',
-                data: pearlData.htuHumidPercent,
+                backgroundColor: colors.orange,
+                borderColor: colors.orange,
+                data: fixGaps(pearlData.htuHumidPercent),
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'PEARL Electronics Humidity',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'PEARL Electronics Humidity',
+                },
               },
               scales: {
-                xAxes: [{
+                xAxes: {
+                  type: "linear",
+                  display: true,
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                yAxes: {
                   display: true,
                   scaleLabel: {
                     display: true,
-                    labelString: 'Date',
+                    labelString: 'Relative Humidity (%)',
                   },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
-                  display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Humidity (%)',
-                  },
-                }]
+                }
               }
             }
           };
@@ -631,63 +526,60 @@
           const pearlPressureConfig = {
             type: 'line',
             data: {
-              labels: pearlDateTime,
               datasets: [{
-                label: 'Pressure (Pa)',
+                label: 'BMP280 Sensor',
                 fill: false,
-                backgroundColor: 'rgb(50, 50, 200)',
-                borderColor: 'rgb(50, 50, 200)',
-                data: pearlData.bmpPressPa,
+                backgroundColor: colors.blue,
+                borderColor: colors.blue,
+                data: fixGaps(pearlData.bmpPressPa),
                 pointRadius: 0,
+                lineTension: 0.1,
               }],
             },
             options: {
-              responsive: true,
-              title: {
-                display: true,
-                text: 'PEARL Electronics Pressure',
-              },
-              tooltips: {
-                mode: 'index',
-                intersect: false,
-              },
-              hover: {
-                mode: 'nearest',
-                intersect: true,
+              plugins: {
+                title: {
+                  text: 'PEARL Electronics Pressure',
+                },
               },
               scales: {
-                xAxes: [{
+                x: {
+                  type: "linear",
+                  display: true,
+                  scaleLabel: scaleLabelOptions,
+                  ticks: ticksOptions,
+                },
+                y: {
                   display: true,
                   scaleLabel: {
                     display: true,
-                    labelString: 'Date',
+                    labelString: 'Pressure (hPa)',
                   },
-                  ticks: {
-                    autoSkipPadding: 100,
-                    autoSkip: true,
-                    minRotation: 0,
-                    maxRotation: 0,
-                    callback: function(value, index, values) {
-                      return value.split(" ")[0];
-                    }
-                  },
-                }],
-                yAxes: [{
-                  display: true,
-                  scaleLabel: {
-                    display: true,
-                    labelString: 'Pressure (Pa)',
-                  },
-                }]
+                }
               }
             }
           };
 
           // Set chart label font size
-          Chart.defaults.global.defaultFontSize = window.innerWidth < 768 ? 8 : 14;
+          Chart.defaults.font.size = window.innerWidth < 768 ? 8 : 14;
+
+          // Set tooltip timestamp
+          Chart.defaults.plugins.tooltip.mode = 'index';
+          Chart.defaults.plugins.tooltip.intersect = false;
+          Chart.defaults.plugins.tooltip.callbacks.title = function(tooltipItem) {
+            return moment(tooltipItem[0].dataPoint.x * 1000).format("DD-MMMM-YYYY h:mm A");
+          };
+
+          // Reponsive chart with title
+          Chart.defaults.responsive = true;
+          Chart.defaults.plugins.title.display = true;
+
+          // Set hover
+          Chart.defaults.hover.mode = 'nearest';
+          Chart.defaults.hover.intersect = true;
 
           // Increase space between legend and chart area
-          Chart.Legend.prototype.afterFit = function() {
+          Chart.Legend._element.prototype.afterFit = function() {
             this.height = this.height + 5;
           };
 
