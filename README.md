@@ -212,6 +212,7 @@ Lastly, there were some AWS credentials issues, probably because of `PATH`, henc
 % /bin/systemctl status crond.service
 
 # Restart cron
+% sudo service crond restart
 % /bin/systemctl restart crond.service
 
 # View cron in system logs
