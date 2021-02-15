@@ -73,7 +73,7 @@ After launching the instance the following links were helpful:
 To connect via SSH with the downloaded key, the following command is used:
 
 ```sh
-% ssh -i "/Users/dpwiese/Library/Mobile Documents/com~apple~CloudDocs/programming/keys-and-security/dpwiese-aws-ec2-t2a-nano.pem" ec2-user@3.216.36.9
+% ssh -i "/Users/dpwiese/Dropbox (Personal)/notebooks/software/keys-and-security/dpwiese-aws-ec2-t2a-nano.pem" ec2-user@3.216.36.9
 ```
 
 With a new EC2 instance created, I now needed to start an FTP server.
